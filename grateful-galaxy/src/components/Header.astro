@@ -1,18 +1,121 @@
 ---
 import { SITE_TITLE } from "../consts";
 import HeaderLink from "./HeaderLink.astro";
+import { Button } from "./ui/button";
 ---
 
-<header>
-  <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-    <h2 class="text-2xl font-bold text-gray-900">
-      <a href="/">{SITE_TITLE}</a>
-    </h2>
+<header
+  id="site-header"
+  class="fixed inset-x-0 top-0 z-50 transition-all duration-500"
+>
+  <div
+    id="header-container"
+    class="mx-auto mt-4 max-w-6xl px-4 transition-all duration-500"
+  >
+    <nav
+      id="site-nav"
+      class="flex items-center justify-between rounded-4xl border border-transparent bg-transparent px-6 py-4 transition-all duration-500"
+    >
+      <!-- Logo -->
+      <a
+        href="/"
+        class="group flex items-center gap-3 transition-all duration-300"
+      >
+        <div class="ml-2 flex flex-col leading-none">
+          <span class="text-[15px] font-medium tracking-tight text-[#111827]">
+            {SITE_TITLE}
+          </span>
 
-    <div class="flex items-center gap-6 text-sm font-medium text-gray-700">
-      <HeaderLink href="/">หน้าแรก</HeaderLink>
-      <HeaderLink href="/blog"> วิธีการใช้งาน และ บทความ </HeaderLink>
-      <HeaderLink href="/about">เกี่ยวกับเรา</HeaderLink>
-    </div>
-  </nav>
+          <span class="text-[11px] text-muted-foreground">
+            Smart payment tracking
+          </span>
+        </div>
+      </a>
+
+      <!-- Nav Links -->
+      <div class="hidden items-center gap-1 md:flex">
+        <HeaderLink
+          href="/"
+          class="rounded-xl px-4 py-2 text-sm font-medium text-[#303841]/70 transition-all duration-300 hover:bg-black/[0.04] hover:text-[#111827]"
+        >
+          หน้าแรก
+        </HeaderLink>
+
+        <HeaderLink
+          href="/blog"
+          class="rounded-xl px-4 py-2 text-sm font-medium text-[#303841]/70 transition-all duration-300 hover:bg-black/[0.04] hover:text-[#111827]"
+        >
+          วิธีใช้งาน
+        </HeaderLink>
+
+        <HeaderLink
+          href="/about"
+          class="rounded-xl px-4 py-2 text-sm font-medium text-[#303841]/70 transition-all duration-300 hover:bg-black/[0.04] hover:text-[#111827]"
+        >
+          เกี่ยวกับเรา
+        </HeaderLink>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-2">
+        <Button size="lg" variant="ghost"> เข้าสู่ระบบ </Button>
+
+        <Button size="lg"> เริ่มใช้ฟรี </Button>
+      </div>
+    </nav>
+  </div>
 </header>
+
+<script>
+  const header = document.getElementById("site-header");
+  const container = document.getElementById("header-container");
+  const nav = document.getElementById("site-nav");
+
+  let scrolled = false;
+
+  function onScroll() {
+    const isScrolled = window.scrollY > 12;
+
+    if (isScrolled === scrolled) return;
+    scrolled = isScrolled;
+
+    if (isScrolled) {
+      container.classList.add("max-w-5xl");
+
+      nav.classList.add(
+        "bg-white/80",
+        "backdrop-blur-xl",
+        "border-black/5",
+        "shadow-[0_8px_40px_rgba(0,0,0,0.08)]",
+        "px-3",
+        "py-2",
+      );
+
+      nav.classList.remove(
+        "bg-transparent",
+        "border-transparent",
+        "px-6",
+        "py-4",
+      );
+    } else {
+      container.classList.remove("max-w-5xl");
+
+      nav.classList.remove(
+        "bg-white/80",
+        "backdrop-blur-xl",
+        "border-black/5",
+        "shadow-[0_8px_40px_rgba(0,0,0,0.08)]",
+        "px-5",
+        "py-3",
+      );
+
+      nav.classList.add("bg-transparent", "border-transparent", "px-6", "py-4");
+    }
+  }
+
+  window.addEventListener("scroll", onScroll, {
+    passive: true,
+  });
+
+  onScroll();
+</script>
