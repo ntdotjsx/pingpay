@@ -28,11 +28,31 @@ export function LogoCloud() {
 
 const logos = [
   {
-    src: "https://storage.efferd.com/logo/nvidia-wordmark.svg",
-    alt: "ZRAWHOUSE",
+    src: "https://static2.wongnai.com/static2/images/2FZ8pLK.png",
+    alt: "WONGNAI Logo",
   },
   {
-    src: "https://storage.efferd.com/logo/supabase-wordmark.svg",
-    alt: "Supabase Logo",
+    src: "https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg",
+    alt: "LINE Logo",
+  },
+  {
+    src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgkviHHlHzJQAdJKm7k4mtxcC-AiNdW1_hUA&s",
+    alt: "ป้านวล Logo",
+  },
+  {
+    src: "https://tipmse.fti.or.th/wp-content/uploads/2024/12/kbank-01.jpg",
+    alt: "Kbank Logo",
+  },
+  {
+    src: "https://miro.medium.com/1*nueyBV0RNEpETYMKpsYWhA.png",
+    alt: "... Logo",
+  },
+  {
+    src: "https://www.thaipr.net/wp-content/uploads/2022/12/LOGO-e1671413476934.jpg",
+    alt: "thaipr Logo",
+  },
+  {
+    src: "https://framerusercontent.com/images/kslpXI1wjc5mQ5SO4CNQt1LY8.png?width=3348&height=1152",
+    alt: "... Logo",
   },
 ];

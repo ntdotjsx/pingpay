@@ -1,0 +1,14 @@
+---
+import { AuthPage } from "@/components/auth";
+import BaseHead from "@/components/BaseHead.astro";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title="Sign In" description="Sign in to your account" />
+  </head>
+  <body>
+    <AuthPage client:only="react" />
+  </body>
+</html>

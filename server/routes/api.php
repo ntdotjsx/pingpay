@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Http\Request;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PostController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -18,4 +20,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // Example resource: Posts
-Route::apiResource('posts', 'App\\Http\\Controllers\\Api\\PostController');
+Route::apiResource('posts', PostController::class);
+
+Route::get('/auth/line',          [AuthController::class, 'redirectToLine']);
+Route::get('/auth/line/callback', [AuthController::class, 'handleLineCallback']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/auth/me',      [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+});

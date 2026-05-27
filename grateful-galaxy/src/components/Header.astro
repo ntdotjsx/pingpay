@@ -58,7 +58,7 @@ import { Button } from "./ui/button";
 
       <!-- CTA -->
       <div class="flex items-center gap-2">
-        <Button size="lg" variant="ghost"> เข้าสู่ระบบ </Button>
+        <Button id="sign-in" size="lg" variant="ghost"> เข้าสู่ระบบ </Button>
 
         <Button size="lg"> เริ่มใช้ฟรี </Button>
       </div>
@@ -70,8 +70,13 @@ import { Button } from "./ui/button";
   const header = document.getElementById("site-header");
   const container = document.getElementById("header-container");
   const nav = document.getElementById("site-nav");
+  const signInButton = document.getElementById("sign-in");
 
   let scrolled = false;
+
+  signInButton.addEventListener("click", () => {
+    window.location.href = "/auth/sign-in";
+  });
 
   function onScroll() {
     const isScrolled = window.scrollY > 12;
