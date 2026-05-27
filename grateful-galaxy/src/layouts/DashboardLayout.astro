@@ -1,13 +1,15 @@
 ---
 import BaseHead from "@/components/BaseHead.astro";
 import { AppShellLayout } from "./Dashboard";
-
+const pathname = Astro.url.pathname;
 interface Props {
   title: string;
   description?: string;
 }
 
 const { title, description = "" } = Astro.props;
+
+import { ClientRouter } from "astro:transitions";
 ---
 
 <!doctype html>
@@ -25,9 +27,10 @@ const { title, description = "" } = Astro.props;
         font-family: "Sarabun", sans-serif;
       }
     </style>
+    <ClientRouter />
   </head>
   <body>
-    <AppShellLayout client:only="react">
+    <AppShellLayout pathname={pathname} client:only="react">
       <slot />
     </AppShellLayout>
   </body>

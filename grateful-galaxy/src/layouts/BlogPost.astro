@@ -3,7 +3,7 @@ import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import BaseHead from "../components/BaseHead.astro";
 import { Footer } from "../components/Footer.tsx";
-import FormattedDate from "../components/FormattedDate.astro";
+import FormattedDate from "@/components/landing/FormattedDate.astro";
 import Header from "../components/Header.astro";
 
 type Props = CollectionEntry<"blog">["data"];
@@ -14,72 +14,61 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 <html lang="en">
   <head>
     <BaseHead title={title} description={description} />
-    <style>
-      .hero-image {
-        width: 100%;
-      }
-      .hero-image img {
-        display: block;
-        margin: 0 auto;
-        border-radius: 12px;
-        box-shadow: var(--box-shadow);
-      }
-      .prose {
-        width: 720px;
-        max-width: calc(100% - 2em);
-        margin: auto;
-        padding: 1em;
-        color: rgb(var(--gray-dark));
-      }
-      .title {
-        margin-bottom: 1em;
-        padding: 1em 0;
-        text-align: center;
-        line-height: 1;
-      }
-      .title h1 {
-        margin: 0 0 0.5em 0;
-      }
-      .date {
-        margin-bottom: 0.5em;
-        color: rgb(var(--gray));
-      }
-      .last-updated-on {
-        font-style: italic;
-      }
-    </style>
   </head>
 
-  <body>
+  <body class="bg-background text-foreground">
     <Header />
-    <main class="max-w-6xl mx-auto px-6 pt-20 pb-32 mt-10">
+
+    {
+      heroImage && (
+        <img
+          class="absolute top-0 left-0 h-[50vh] w-full object-cover object-center blur-lg [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)] [-webkit-mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)]"
+          src={heroImage.src}
+          alt="blog_image"
+        />
+      )
+    }
+
+    <main class="relative mx-auto mt-10 max-w-5xl px-4 pt-20 pb-32">
       <article>
-        <div class="hero-image">
-          {
-            heroImage && (
-              <Image width={1020} height={510} src={heroImage} alt="" />
-            )
-          }
-        </div>
-        <div class="prose">
-          <div class="title">
-            <div class="date">
+        {
+          heroImage && (
+            <div class="mb-8 overflow-hidden rounded-2xl">
+              <Image
+                width={700}
+                height={320}
+                src={heroImage}
+                alt={heroImage.format || "blog_image"}
+                class="mx-auto block w-full max-w-3xl rounded-2xl object-cover shadow-2xl"
+              />
+            </div>
+          )
+        }
+
+        <div class="prose prose-neutral dark:prose-invert mx-auto max-w-3xl">
+          <div class="mb-10 border-b pb-8 text-center">
+            <div class="mb-4 text-sm text-muted-foreground">
               <FormattedDate date={pubDate} />
+
               {
                 updatedDate && (
-                  <div class="last-updated-on">
+                  <div class="mt-1 italic">
                     Last updated on <FormattedDate date={updatedDate} />
                   </div>
                 )
               }
             </div>
-            <h1>{title}</h1>
-            <hr />
+
+            <h1 class="m-0 text-4xl font-bold tracking-tight md:text-5xl">
+              {title}
+            </h1>
           </div>
+
           <slot />
         </div>
       </article>
     </main>
+
     <Footer client:load />
   </body>
 </html>

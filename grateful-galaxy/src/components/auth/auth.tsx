@@ -1,6 +1,6 @@
 "use client";
 
-import { Logo } from "@/components/logo";
+import { Logo } from "@/components/landing/logo";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,

@@ -1,4 +1,4 @@
-import { LogoIcon } from "@/components/logo";
+import { LogoIcon } from "@/components/landing/logo";
 import { Button } from "@/components/ui/button";
 import {
 	Sidebar,
@@ -11,8 +11,8 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavGroup } from "./nav-group";
-import { footerNavLinks, navGroups } from "@/components/app-shared";
-import { LatestChange } from "@/components/latest-change";
+import { footerNavLinks, navGroups } from "@/components/dashboard/app-shared";
+import { LatestChange } from "@/components/dashboard/latest-change";
 import { PlusIcon, SearchIcon } from "lucide-react";
 
 export function AppSidebar() {
@@ -20,9 +20,9 @@ export function AppSidebar() {
 		<Sidebar collapsible="icon" variant="inset">
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton asChild>
-					<a href="#link">
+					<a href="/">
 						<LogoIcon />
-						<span className="font-medium">Efferd</span>
+						<span className="font-medium">PINGPAY</span>
 					</a>
 				</SidebarMenuButton>
 			</SidebarHeader>
@@ -35,7 +35,7 @@ export function AppSidebar() {
 						>
 							<PlusIcon
 							/>
-							<span>New Conversation</span>
+							<span>เพิ่มรายการใหม่</span>
 						</SidebarMenuButton>
 						<Button
 							aria-label="Search conversations"

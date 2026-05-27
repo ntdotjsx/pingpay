@@ -12,11 +12,8 @@ use Illuminate\Support\Facades\Cache;
 class AuthController extends Controller
 {
     // LINE OAuth endpoints
-    private const AUTH_URL        = 'https://access.line.me/oauth2/v2.1/authorize';
-    private const TOKEN_URL       = 'https://api.line.me/oauth2/v2.1/token';
-    private const PROFILE_URL     = 'https://api.line.me/v2/profile';
-    private const REVOKE_URL      = 'https://api.line.me/oauth2/v2.1/revoke';
-    private const VERIFY_URL      = 'https://api.line.me/oauth2/v2.1/verify';
+    private const AUTH_URL    = 'https://access.line.me/oauth2/v2.1/authorize';
+    private const TOKEN_URL   = 'https://api.line.me/oauth2/v2.1/token';
 
     // -------------------------------------------------------------------------
     // STEP 1 : คืน LINE Login URL ให้ frontend เปิด browser ไปที่ URL นี้
@@ -24,8 +21,6 @@ class AuthController extends Controller
     // -------------------------------------------------------------------------
     public function redirectToLine()
     {
-        // สร้าง state แบบ random แล้ว cache ไว้ 10 นาที
-        // (ไม่ใช้ session เพราะเป็น REST API stateless)
         $state = hash('sha256', Str::random(40));
         Cache::put("line_state_{$state}", true, now()->addMinutes(10));
 
@@ -51,13 +46,13 @@ class AuthController extends Controller
         $code  = $request->query('code');
         $state = $request->query('state');
 
-        // --- ตรวจ state ว่าตรงกับที่เราสร้างไว้ ---
+        // --- ตรวจ state ---
         if (!$code || !$state || !Cache::pull("line_state_{$state}")) {
             return response()->json(['message' => 'Invalid state or missing code.'], 422);
         }
 
         // --- แลก code เป็น access_token ---
-        $tokenResponse = Http::asForm()->post(self::TOKEN_URL, [
+        $tokenResponse = Http::withoutVerifying()->asForm()->post(self::TOKEN_URL, [
             'grant_type'    => 'authorization_code',
             'code'          => $code,
             'redirect_uri'  => config('services.line.redirect'),
@@ -71,15 +66,17 @@ class AuthController extends Controller
 
         $token = $tokenResponse->object();
 
-        // --- ดึง profile จาก id_token (ไม่ต้อง call API เพิ่ม) ---
+        // --- decode id_token เพื่อดึง profile ---
         $profile = $this->parseIdToken($token);
 
-        // --- หา user ในระบบหรือสร้างใหม่ ---
+        // --- หา user หรือสร้างใหม่ ---
         $user = User::updateOrCreate(
             ['line_id' => $profile->sub],
             [
-                'name'   => $profile->name   ?? 'LINE User',
-                'email'  => $profile->email  ?? null,
+                'name'   => $profile->name    ?? 'LINE User',
+                'email'  => !empty($profile->email)
+                                ? $profile->email
+                                : 'line_' . $profile->sub . '@line.local',
                 'avatar' => $profile->picture ?? null,
             ]
         );
@@ -87,33 +84,25 @@ class AuthController extends Controller
         // --- ออก Sanctum token ---
         $accessToken = $user->createToken('line-login')->plainTextToken;
 
-        return response()->json([
-            'access_token' => $accessToken,
-            'token_type'   => 'Bearer',
-            'user'         => [
-                'id'     => $user->id,
-                'name'   => $user->name,
-                'email'  => $user->email,
-                'avatar' => $user->avatar,
-            ],
-        ]);
+        // --- redirect กลับ frontend พร้อม HttpOnly Cookie ---
+        $frontendUrl = config('app.frontend_url', 'http://localhost:4321');
+
+        return redirect("{$frontendUrl}/dashboard")
+            ->cookie(
+                'access_token',          // name
+                $accessToken,            // value
+                60 * 24 * 7,             // minutes (7 วัน)
+                '/',                     // path
+                null,                    // domain
+                app()->isProduction(),   // secure (HTTPS เฉพาะ production)
+                true,                    // httpOnly — JS อ่านไม่ได้ ✓
+                false,                   // raw
+                'Lax'                    // sameSite
+            );
     }
 
     // -------------------------------------------------------------------------
-    // Logout : revoke LINE token + ลบ Sanctum token
-    // POST /api/auth/logout
-    // -------------------------------------------------------------------------
-    public function logout(Request $request)
-    {
-        // ลบ Sanctum token ปัจจุบัน
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json(['message' => 'Logged out successfully.']);
-    }
-
-    // -------------------------------------------------------------------------
-    // ดึง user ที่ login อยู่
-    // GET /api/auth/me
+    // GET /api/auth/me  — ดึงข้อมูล user ที่ login อยู่
     // -------------------------------------------------------------------------
     public function me(Request $request)
     {
@@ -121,8 +110,19 @@ class AuthController extends Controller
     }
 
     // -------------------------------------------------------------------------
-    // HELPER : decode id_token (JWT payload) โดยไม่ verify signature
-    // สำหรับ production ควร verify ด้วย LINE public key
+    // POST /api/auth/logout — ลบ Sanctum token + clear cookie
+    // -------------------------------------------------------------------------
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()
+            ->json(['message' => 'Logged out successfully.'])
+            ->withoutCookie('access_token');
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPER : decode id_token (JWT payload)
     // -------------------------------------------------------------------------
     private function parseIdToken(object $token): object
     {
@@ -132,7 +132,6 @@ class AuthController extends Controller
             return (object) [];
         }
 
-        // base64url decode
         $payload = base64_decode(strtr($parts[1], '-_', '+/'));
 
         return json_decode($payload) ?? (object) [];
