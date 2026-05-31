@@ -1,214 +1,28 @@
 ---
-title: 'Markdown Style Guide'
+title: 'คู่มือการใช้ PINGPAY'
 description: 'Here is a sample of some basic Markdown syntax that can be used when writing Markdown content in Astro.'
 pubDate: 'Jun 19 2024'
-heroImage: '../../assets/blog-placeholder-1.jpg'
+heroImage: 'https://easysunday.com/blog/wp-content/uploads/2024/06/how-to-ask-for-money-back-from-friends.webp'
 ---
 
-Here is a sample of some basic Markdown syntax that can be used when writing Markdown content in Astro.
-
-## Headings
-
-The following HTML `<h1>`—`<h6>` elements represent six levels of section headings. `<h1>` is the highest section level while `<h6>` is the lowest.
-
-# H1
-
-## H2
-
-### H3
-
-#### H4
-
-##### H5
-
-###### H6
-
-## Paragraph
-
-Xerum, quo qui aut unt expliquam qui dolut labo. Aque venitatiusda cum, voluptionse latur sitiae dolessi aut parist aut dollo enim qui voluptate ma dolestendit peritin re plis aut quas inctum laceat est volestemque commosa as cus endigna tectur, offic to cor sequas etum rerum idem sintibus eiur? Quianimin porecus evelectur, cum que nis nust voloribus ratem aut omnimi, sitatur? Quiatem. Nam, omnis sum am facea corem alique molestrunt et eos evelece arcillit ut aut eos eos nus, sin conecerem erum fuga. Ri oditatquam, ad quibus unda veliamenimin cusam et facea ipsamus es exerum sitate dolores editium rerore eost, temped molorro ratiae volorro te reribus dolorer sperchicium faceata tiustia prat.
-
-Itatur? Quiatae cullecum rem ent aut odis in re eossequodi nonsequ idebis ne sapicia is sinveli squiatum, core et que aut hariosam ex eat.
-
-## Images
-
-### Syntax
-
-```markdown
-![Alt text](./full/or/relative/path/of/image)
-```
-
-### Output
-
-![blog placeholder](../../assets/blog-placeholder-about.jpg)
-
-## Blockquotes
-
-The blockquote element represents content that is quoted from another source, optionally with a citation which must be within a `footer` or `cite` element, and optionally with in-line changes such as annotations and abbreviations.
-
-### Blockquote without attribution
-
-#### Syntax
-
-```markdown
-> Tiam, ad mint andaepu dandae nostion secatur sequo quae.  
-> **Note** that you can use _Markdown syntax_ within a blockquote.
-```
-
-#### Output
-
-> Tiam, ad mint andaepu dandae nostion secatur sequo quae.  
-> **Note** that you can use _Markdown syntax_ within a blockquote.
-
-### Blockquote with attribution
-
-#### Syntax
-
-```markdown
-> Don't communicate by sharing memory, share memory by communicating.<br>
-> — <cite>Rob Pike[^1]</cite>
-```
-
-#### Output
-
-> Don't communicate by sharing memory, share memory by communicating.<br>
-> — <cite>Rob Pike[^1]</cite>
-
-[^1]: The above quote is excerpted from Rob Pike's [talk](https://www.youtube.com/watch?v=PAAkCSZUG1c) during Gopherfest, November 18, 2015.
-
-## Tables
-
-### Syntax
-
-```markdown
-| Italics   | Bold     | Code   |
-| --------- | -------- | ------ |
-| _italics_ | **bold** | `code` |
-```
-
-### Output
-
-| Italics   | Bold     | Code   |
-| --------- | -------- | ------ |
-| _italics_ | **bold** | `code` |
-
-## Code Blocks
-
-### Syntax
-
-we can use 3 backticks ``` in new line and write snippet and close with 3 backticks on new line and to highlight language specific syntax, write one word of language name after first 3 backticks, for eg. html, javascript, css, markdown, typescript, txt, bash
-
-````markdown
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Example HTML5 Document</title>
-  </head>
-  <body>
-    <p>Test</p>
-  </body>
-</html>
-```
-````
-
-### Output
-
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Example HTML5 Document</title>
-  </head>
-  <body>
-    <p>Test</p>
-  </body>
-</html>
-```
-
-## List Types
-
-### Ordered List
-
-#### Syntax
-
-```markdown
-1. First item
-2. Second item
-3. Third item
-```
-
-#### Output
-
-1. First item
-2. Second item
-3. Third item
-
-### Unordered List
-
-#### Syntax
-
-```markdown
-- List item
-- Another item
-- And another item
-```
-
-#### Output
-
-- List item
-- Another item
-- And another item
-
-### Nested list
-
-#### Syntax
-
-```markdown
-- Fruit
-  - Apple
-  - Orange
-  - Banana
-- Dairy
-  - Milk
-  - Cheese
-```
-
-#### Output
-
-- Fruit
-  - Apple
-  - Orange
-  - Banana
-- Dairy
-  - Milk
-  - Cheese
-
-## Other Elements — abbr, sub, sup, kbd, mark
-
-### Syntax
-
-```markdown
-<abbr title="Graphics Interchange Format">GIF</abbr> is a bitmap image format.
-
-H<sub>2</sub>O
-
-X<sup>n</sup> + Y<sup>n</sup> = Z<sup>n</sup>
-
-Press <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>Delete</kbd> to end the session.
-
-Most <mark>salamanders</mark> are nocturnal, and hunt for insects, worms, and other small creatures.
-```
-
-### Output
-
-<abbr title="Graphics Interchange Format">GIF</abbr> is a bitmap image format.
-
-H<sub>2</sub>O
-
-X<sup>n</sup> + Y<sup>n</sup> = Z<sup>n</sup>
-
-Press <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>Delete</kbd> to end the session.
-
-Most <mark>salamanders</mark> are nocturnal, and hunt for insects, worms, and other small creatures.
+<div class="max-w-[750px] mx-auto my-5 text-gray-700 font-sans">
+  <div class="text-2xl font-bold text-gray-900 mb-4">วิธีการเข้าสู่ระบบ (How to login)</div>
+  <p class="text-base text-gray-600 leading-relaxed mb-6">สำหรับท่านที่มีบัญชีอยู่แล้ว สามารถเข้าสู่ระบบเพื่อบริหารจัดการข้อมูล ได้ตามขั้นตอนดังนี้ค่ะ:</p>
+
+  <ul class="list-none p-0 space-y-4">
+    <li class="bg-white border border-gray-200 rounded-lg px-5 py-4 shadow-sm flex items-start">
+      <div style="background:#000;color:#fff;font-weight:bold;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-right:16px;flex-shrink:0;font-size:14px;">1</div>
+      <div class="text-base leading-relaxed">เปิด Browser และไปที่หน้าเว็บหลัก จากนั้นคลิกปุ่ม <strong style="color:#000;">"เข้าสู่ระบบ"</strong> หรือ <strong style="color:#000;">"Continue with Line"</strong></div>
+    </li>
+    <li class="bg-white border border-gray-200 rounded-lg px-5 py-4 shadow-sm flex items-start">
+      <div style="background:#000;color:#fff;font-weight:bold;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-right:16px;flex-shrink:0;font-size:14px;">2</div>
+      <div class="text-base leading-relaxed">หรือเข้าสู่หน้าล็อกอินโดยตรงได้ที่ URL: <strong style="color:#000;">http://localhost:4321/auth/sign-in</strong> <code></code></div>
+    </li>
+    <li class="bg-white border border-gray-200 rounded-lg px-5 py-4 shadow-sm flex items-start">
+      <div style="background:#000;color:#fff;font-weight:bold;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-right:16px;flex-shrink:0;font-size:14px;">3</div>
+      <div class="text-base leading-relaxed">กรอกอีเมล และ รหัสผ่าน ของท่าน จากนั้นคลิกที่ปุ่ม <strong style="color:#000;">"Sing In"</strong></div>
+    </li>
+  </ul>
+
+  <img src='/login.png'/>
+</div>
