@@ -1,5 +1,15 @@
 // DashboardContent.tsx — redesigned: minimal + professional
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  cloneElement,
+  type FocusEvent,
+  type ReactElement,
+  type MouseEvent,
+  type ReactNode,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import {
   api,
   type ApiDashboard,
@@ -30,6 +40,58 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
+
+function Hint({
+  label,
+  children,
+}: {
+  label: ReactNode;
+  children: ReactElement;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const child = children as ReactElement<any>;
+
+  const handleMove = (event: MouseEvent<HTMLElement>) => {
+    setPos({ x: event.clientX, y: event.clientY });
+    child.props.onMouseMove?.(event);
+  };
+
+  return (
+    <>
+      {cloneElement(child, {
+        onMouseEnter: (event: MouseEvent<HTMLElement>) => {
+          setOpen(true);
+          setPos({ x: event.clientX, y: event.clientY });
+          child.props.onMouseEnter?.(event);
+        },
+        onMouseMove: handleMove,
+        onMouseLeave: (event: MouseEvent<HTMLElement>) => {
+          setOpen(false);
+          child.props.onMouseLeave?.(event);
+        },
+        onFocus: (event: FocusEvent<HTMLElement>) => {
+          setOpen(true);
+          child.props.onFocus?.(event);
+        },
+        onBlur: (event: FocusEvent<HTMLElement>) => {
+          setOpen(false);
+          child.props.onBlur?.(event);
+        },
+      })}
+      <span
+        className={`pointer-events-none fixed left-0 top-0 z-[70] max-w-xs rounded-xl bg-foreground px-3 py-1.5 text-xs text-background shadow-lg ${
+          open ? "block" : "hidden"
+        }`}
+        style={{
+          transform: `translate3d(${pos.x + 14}px, ${pos.y + 16}px, 0)`,
+        }}
+      >
+        {label}
+      </span>
+    </>
+  );
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -120,14 +182,16 @@ function Avatar({
 }: {
   name: string;
   avatar?: string | null;
-  size?: "xs" | "sm" | "md";
+  size?: "2xs" | "xs" | "sm" | "md";
 }) {
   const sz =
     size === "md"
       ? "w-9 h-9 text-sm"
       : size === "xs"
         ? "w-6 h-6 text-[10px]"
-        : "w-8 h-8 text-xs";
+        : size === "2xs"
+          ? "w-4 h-4 text-[8px]"
+          : "w-8 h-8 text-xs";
   if (avatar)
     return (
       <img
@@ -217,17 +281,45 @@ function LoanRow({
   const pct = total > 0 ? Math.round(((total - remaining) / total) * 100) : 0;
   const st = statusLabel(loan.status);
 
+  const borrowerName = loan.borrower?.name ?? `#${loan.id}`;
+  const daysUntilDue = loan.due_date
+    ? Math.round(
+        (parseDate(loan.due_date).getTime() -
+          parseDate(dateKey(new Date())).getTime()) /
+          86400000,
+      )
+    : null;
+  const isDueSoon =
+    daysUntilDue !== null &&
+    daysUntilDue >= 0 &&
+    daysUntilDue <= 3 &&
+    loan.status !== "overdue" &&
+    loan.status !== "settled";
+  const dueSoonLabel =
+    daysUntilDue === 0
+      ? "ครบกำหนดวันนี้"
+      : `ใกล้ครบกำหนดใน ${daysUntilDue} วัน`;
+
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left group"
-    >
-      <Avatar name={loan.borrower?.name ?? "?"} />
+    <Hint label={`ดูรายละเอียดของ ${borrowerName}`}>
+      <button
+        onClick={onClick}
+        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+      >
+      <Avatar name={borrowerName} avatar={loan.borrower?.avatar} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-foreground truncate">
-            {loan.borrower?.name ?? `#${loan.id}`}
+            {borrowerName}
           </p>
+          {isDueSoon && (
+            <Hint label={dueSoonLabel}>
+              <span className="relative flex h-3 w-3 shrink-0 items-center justify-center" aria-label={dueSoonLabel}>
+                <span className="absolute h-3 w-3 animate-ping rounded-full bg-red-500/35" />
+                <span className="relative h-1.5 w-1.5 rounded-full bg-red-500" />
+              </span>
+            </Hint>
+          )}
           {pendingCount > 0 && (
             <span className="shrink-0 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
               {pendingCount}
@@ -275,7 +367,8 @@ function LoanRow({
       >
         <polyline points="9 18 15 12 9 6" />
       </svg>
-    </button>
+      </button>
+    </Hint>
   );
 }
 
@@ -343,9 +436,7 @@ function DueSoonStrip({ loans }: { loans: ApiLoan[] }) {
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        <p className="text-xs font-semibold text-amber-800 dark:text-amber-400">
-          ใกล้ครบกำหนด ({loans.length})
-        </p>
+        
       </div>
       <div className="divide-y divide-amber-200/40 dark:divide-amber-800/20">
         {loans.slice(0, 3).map((loan) => (
@@ -443,6 +534,12 @@ function DashboardCalendar({
       return next;
     });
   };
+  const calendarDateLabel = (date: Date) =>
+    date.toLocaleDateString("th-TH", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
 
   return (
     <section className="rounded-2xl border border-border/60 bg-background p-2.5">
@@ -452,6 +549,7 @@ function DashboardCalendar({
           <p className="text-[10px] text-muted-foreground">{monthLabel(viewDate)}</p>
         </div>
         <div className="flex items-center gap-1">
+          <Hint label="เดือนก่อนหน้า">
           <button
             onClick={() => goMonth(-1)}
             className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -461,12 +559,16 @@ function DashboardCalendar({
               <path d="m15 18-6-6 6-6" />
             </svg>
           </button>
+          </Hint>
+          <Hint label="กลับไปเดือนปัจจุบัน">
           <button
             onClick={() => setViewDate(new Date())}
             className="h-[26px] rounded-md border border-border/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             วันนี้
           </button>
+          </Hint>
+          <Hint label="เดือนถัดไป">
           <button
             onClick={() => goMonth(1)}
             className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -476,6 +578,7 @@ function DashboardCalendar({
               <path d="m9 18 6-6-6-6" />
             </svg>
           </button>
+          </Hint>
         </div>
       </div>
 
@@ -494,8 +597,28 @@ function DashboardCalendar({
           const inMonth = day.getMonth() === viewDate.getMonth();
           const isToday = key === todayKey;
           const overdue = items.some((loan) => loan.status === "overdue");
+          const dueSoonLoans = items.filter((loan) => {
+            if (!loan.due_date || loan.status === "overdue") return false;
+            const daysUntilDue = Math.round(
+              (parseDate(loan.due_date).getTime() - todayStart) / 86400000,
+            );
+            return daysUntilDue >= 0 && daysUntilDue <= 3;
+          });
+          const isDueSoon = dueSoonLoans.length > 0;
+          const visibleFriends = items.slice(0, 2);
+          const tooltipLabel = `${calendarDateLabel(day)}: ${items
+            .map(
+              (loan) =>
+                `${loan.borrower?.name ?? `#${loan.id}`} ${fmt(
+                  parseFloat(loan.remaining_amount),
+                )}`,
+            )
+            .join(", ")}`;
+          const dueSoonLabel = `ใกล้ครบกำหนด: ${dueSoonLoans
+            .map((loan) => loan.borrower?.name ?? `#${loan.id}`)
+            .join(", ")}`;
 
-          return (
+          const dayButton = (
             <button
               key={key}
               onClick={() => items[0] && onSelectLoan(items[0])}
@@ -515,15 +638,40 @@ function DashboardCalendar({
               >
                 {day.getDate()}
               </span>
+              {isDueSoon && (
+                <Hint label={dueSoonLabel}>
+                  <span className="absolute right-1 top-1 flex h-2.5 w-2.5 items-center justify-center">
+                    <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-red-500/35" />
+                    <span className="relative h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.85)]" />
+                  </span>
+                </Hint>
+              )}
               {items.length > 0 && (
-                <span className="absolute bottom-[2px] left-1 right-1 flex items-center gap-1">
-                  <span className={`h-1 w-1 rounded-full ${overdue ? "bg-red-500" : "bg-amber-500"}`} />
-                  <span className="truncate text-[8px] font-semibold tabular-nums">
-                    {items.length}
+                <span className="absolute bottom-[3px] left-1 right-1 flex items-end justify-between gap-1">
+                  <span className="flex min-w-0 -space-x-1">
+                    {visibleFriends.map((loan) => (
+                      <Avatar
+                        key={loan.id}
+                        name={loan.borrower?.name ?? `#${loan.id}`}
+                        avatar={loan.borrower?.avatar}
+                        size="2xs"
+                      />
+                    ))}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-background/85 px-1 text-[8px] font-semibold tabular-nums shadow-sm">
+                    {items.length > 2 ? `+${items.length - 2}` : items.length}
                   </span>
                 </span>
               )}
             </button>
+          );
+
+          return items.length > 0 ? (
+            <Hint key={key} label={tooltipLabel}>
+              {dayButton}
+            </Hint>
+          ) : (
+            dayButton
           );
         })}
       </div>
@@ -1385,6 +1533,7 @@ export function DashboardContent() {
 
         {/* Lender link */}
         {user?.line_id ? (
+          <Hint label="คัดลอกลิงก์สำหรับส่งให้ลูกหนี้">
           <button
             onClick={handleCopyLenderLink}
             className="rounded-2xl border border-border/60 bg-background p-4 text-left hover:bg-muted/30 transition-colors group"
@@ -1427,6 +1576,7 @@ export function DashboardContent() {
               </div>
             </div>
           </button>
+          </Hint>
         ) : (
           <div className="rounded-2xl border border-dashed border-border/60 bg-background/50 p-4 flex items-center justify-center">
             <p className="text-xs text-muted-foreground text-center">
@@ -1443,17 +1593,16 @@ export function DashboardContent() {
         <DueSoonStrip loans={data.due_soon} />
       )}
 
-      <DashboardCalendar
-        loans={activeLoans}
-        onSelectLoan={setSelectedLoan}
-      />
 
       {/* ── Loan list header ── */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full gap-1 bg-muted/40 p-1 rounded-xl sm:w-auto">
           {(["active", "settled"] as const).map((t) => (
-            <button
+            <Hint
               key={t}
+              label={t === "active" ? "ดูรายการค้างชำระ" : "ดูรายการที่ชำระครบแล้ว"}
+            >
+            <button
               onClick={() => setTab(t)}
               className={`flex-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums sm:flex-none ${
                 tab === t
@@ -1465,25 +1614,50 @@ export function DashboardContent() {
                 ? `ค้างอยู่${activeLoans.length ? ` (${activeLoans.length})` : ""}`
                 : `ครบแล้ว${settledLoans.length ? ` (${settledLoans.length})` : ""}`}
             </button>
+            </Hint>
           ))}
         </div>
-        <Button
-          onClick={() => setShowAdd(true)}
-          size="sm"
-          className="gap-1.5 shrink-0 h-8 px-3 text-xs"
-        >
-          <svg
-            className="w-3 h-3"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
+        <div className="flex gap-2 sm:justify-end">
+          <Hint label="เปิดปฏิทินครบกำหนด">
+          <Button
+            onClick={() => setShowCalendar(true)}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 px-3 text-xs"
           >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          เพิ่มรายการ
-        </Button>
+            <svg
+              className="w-3 h-3"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            ปฏิทิน
+          </Button>
+          </Hint>
+          <Hint label="เพิ่มรายการหนี้ใหม่">
+          <Button
+            onClick={() => setShowAdd(true)}
+            size="sm"
+            className="gap-1.5 shrink-0 h-8 px-3 text-xs"
+          >
+            <svg
+              className="w-3 h-3"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            เพิ่มรายการ
+          </Button>
+          </Hint>
+        </div>
       </div>
 
       {/* ── Loan list ── */}
@@ -1499,12 +1673,14 @@ export function DashboardContent() {
                   : "ยังไม่มีรายการที่ชำระครบ"}
               </p>
               {tab === "active" && (
+                <Hint label="สร้างรายการหนี้รายการแรก">
                 <button
                   onClick={() => setShowAdd(true)}
                   className="mt-3 text-xs text-primary underline underline-offset-2"
                 >
                   + เพิ่มรายการแรก
                 </button>
+                </Hint>
               )}
             </div>
           );
@@ -1527,6 +1703,25 @@ export function DashboardContent() {
         onClose={() => setShowAdd(false)}
         onCreated={fetchAll}
       />
+      <Sheet open={showCalendar} onOpenChange={setShowCalendar}>
+        <SheetContent side="right" className="w-[92vw] sm:max-w-md p-0">
+          <SheetHeader className="border-b border-border/60 pr-14">
+            <SheetTitle>ปฏิทินครบกำหนด</SheetTitle>
+            <SheetDescription>
+              ดูวันครบกำหนดของรายการค้างชำระทั้งหมด
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4">
+            <DashboardCalendar
+              loans={activeLoans}
+              onSelectLoan={(loan) => {
+                setSelectedLoan(loan);
+                setShowCalendar(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
       <LoanDetailModal
         loan={selectedLoan}
         open={!!selectedLoan}
