@@ -92,6 +92,50 @@ export interface ApiDashboard {
   due_soon: ApiLoan[];
 }
 
+export interface ApiKeySettings {
+  line_bot: {
+    has_token: boolean;
+    masked_token: string | null;
+  };
+  slipok: {
+    has_api_key: boolean;
+    masked_api_key: string | null;
+    branch_id: string | null;
+  };
+}
+
+export interface NotificationSettings {
+  payment_confirmations: boolean;
+  due_soon: boolean;
+  overdue: boolean;
+  daily_digest: boolean;
+  line_push: boolean;
+  email_backup: boolean;
+  due_soon_days: number;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  reminder_message: string;
+}
+
+export interface CreditorInsights {
+  total_lent: number;
+  outstanding: number;
+  recovered: number;
+  recovery_rate: number;
+  active_loans_count: number;
+  settled_loans_count: number;
+  overdue_amount: number;
+  pending_confirmations: number;
+  average_ticket: number;
+  top_debtors: Array<{
+    borrower_id: number;
+    borrower: { id: number; name: string };
+    outstanding: number;
+    loan_count: number;
+  }>;
+  monthly_recovery: Array<{ month: string; amount: number }>;
+}
+
 // ============================================================
 //  Lender static page (สำหรับ /lender/[line_id])
 // ============================================================
@@ -254,6 +298,43 @@ export const api = {
     return data.data;
   },
 
+  async getApiKeys() {
+    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>("/dashboard/api-keys");
+    return data.data;
+  },
+
+  async updateApiKeys(body: {
+    line_bot_token?: string;
+    slipok_api_key?: string;
+    slipok_branch_id?: string;
+    clear_line_bot_token?: boolean;
+    clear_slipok_api_key?: boolean;
+  }) {
+    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>("/dashboard/api-keys", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    return data.data;
+  },
+
+  async getNotificationSettings() {
+    const data = await apiFetch<{ success: boolean; data: NotificationSettings }>("/dashboard/notification");
+    return data.data;
+  },
+
+  async updateNotificationSettings(body: NotificationSettings) {
+    const data = await apiFetch<{ success: boolean; data: NotificationSettings }>("/dashboard/notification", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    return data.data;
+  },
+
+  async getCreditorInsights() {
+    const data = await apiFetch<{ success: boolean; data: CreditorInsights }>("/dashboard/insights");
+    return data.data;
+  },
+
   // ============================================================
   //  Members
   // ============================================================
@@ -262,12 +343,21 @@ export const api = {
     const qs = search ? `?search=${encodeURIComponent(search)}` : "";
     const data = await apiFetch<{
       success: boolean;
-      data: Array<{ id: number; name: string; phone: string | null; email: string | null }>;
+      data: Array<{
+        id: number;
+        name: string;
+        phone: string | null;
+        email: string | null;
+        line_id?: string | null;
+        we_are_creditor?: number;
+        we_are_debtor?: number;
+        active_loans_count?: number;
+      }>;
     }>(`/members${qs}`);
     return data.data;
   },
 
-  async createMember(body: { name: string; line_id?: string }) {
+  async createMember(body: { name: string; line_id?: string; phone?: string }) {
     const data = await apiFetch<{ success: boolean; data: { id: number; name: string; line_id: string | null } }>(
       "/members",
       { method: "POST", body: JSON.stringify(body) }

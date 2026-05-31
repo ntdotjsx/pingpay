@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CreditorSettingsController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\GuestLoanController;
 use App\Http\Controllers\Api\LoanController;
@@ -32,6 +33,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('dashboard', [UserController::class, 'dashboard']);
+    Route::get('dashboard/insights', [CreditorSettingsController::class, 'insights']);
+    Route::get('dashboard/api-keys', [CreditorSettingsController::class, 'apiKeys']);
+    Route::put('dashboard/api-keys', [CreditorSettingsController::class, 'updateApiKeys']);
+    Route::get('dashboard/notification', [CreditorSettingsController::class, 'notifications']);
+    Route::put('dashboard/notification', [CreditorSettingsController::class, 'updateNotifications']);
 
     // Profile & Account
     Route::prefix('user')->group(function () {

@@ -12,8 +12,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'line_id', 'avatar'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable([
+    'name',
+    'email',
+    'phone',
+    'password',
+    'line_id',
+    'avatar',
+    'line_bot_token',
+    'slipok_api_key',
+    'slipok_branch_id',
+    'notification_settings',
+])]
+#[Hidden(['password', 'remember_token', 'line_bot_token', 'slipok_api_key'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -24,6 +35,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'notification_settings' => 'array',
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\User;
+use App\Models\UserMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -144,31 +145,29 @@ class UserController extends Controller
     /** GET /api/members */
     public function members(Request $request): JsonResponse
     {
-        $userId = Auth::id();
         $search = $request->query('search');
 
-        $asLender   = Loan::where('lender_id', $userId)->pluck('borrower_id');
-        $asBorrower = Loan::where('borrower_id', $userId)->pluck('lender_id');
-        $partnerIds = $asLender->merge($asBorrower)->unique()->filter(fn($id) => $id !== $userId);
+        $memberIds = UserMember::where('owner_id', Auth::id())
+            ->pluck('member_id');
 
-        $members = User::whereIn('id', $partnerIds)
-            ->when($search, fn($q) => $q->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere(function ($q) use ($search) {
-                      $q->where('email', 'not like', 'manual_%')
-                        ->where('email', 'like', "%{$search}%");
-                  });
-            }))
+        $members = User::whereIn('id', $memberIds)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
             ->get()
-            ->map(function (User $user) use ($userId) {
-                $weAreCreditor = Loan::where('lender_id', $userId)
+            ->map(function (User $user) {
+
+                $weAreCreditor = Loan::where('lender_id', Auth::id())
                     ->where('borrower_id', $user->id)
                     ->where('status', '!=', 'settled')
                     ->sum('remaining_amount');
 
                 $weAreDebtor = Loan::where('lender_id', $user->id)
-                    ->where('borrower_id', $userId)
+                    ->where('borrower_id', Auth::id())
                     ->where('status', '!=', 'settled')
                     ->sum('remaining_amount');
 
@@ -176,15 +175,21 @@ class UserController extends Controller
                     'id'                 => $user->id,
                     'name'               => $user->name,
                     'email'              => $user->email,
-                    'phone'              => $user->phone ?? null,
-                    'line_id'            => $user->line_id ?? null,
+                    'phone'              => $user->phone,
+                    'line_id'            => $user->line_id,
                     'we_are_creditor'    => (float) $weAreCreditor,
                     'we_are_debtor'      => (float) $weAreDebtor,
-                    'active_loans_count' => (int) (($weAreCreditor > 0 ? 1 : 0) + ($weAreDebtor > 0 ? 1 : 0)),
+                    'active_loans_count' => (int)(
+                        ($weAreCreditor > 0 ? 1 : 0) +
+                        ($weAreDebtor > 0 ? 1 : 0)
+                    ),
                 ];
             });
 
-        return response()->json(['success' => true, 'data' => $members]);
+        return response()->json([
+            'success' => true,
+            'data' => $members
+        ]);
     }
 
     /** POST /api/members */
@@ -193,42 +198,73 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'    => 'required|string|max:100',
             'line_id' => 'nullable|string|max:100|unique:users,line_id',
+            'phone'   => 'nullable|string|max:20',
         ]);
 
         $user = User::create([
             'name'    => $validated['name'],
             'email'   => 'manual_' . uniqid() . '@manual.local',
             'line_id' => $validated['line_id'] ?? null,
+            'phone'   => $validated['phone'] ?? null,
         ]);
 
-        return response()->json(['success' => true, 'data' => $user], 201);
-    }
-
-    /** GET /api/members/{user} */
-    public function memberSummary(Request $request, User $member): JsonResponse
-    {
-        $userId = Auth::id();
-
-        $loansWeGave = Loan::where('lender_id', $userId)->where('borrower_id', $member->id)->get();
-        $loansWeOwe  = Loan::where('lender_id', $member->id)->where('borrower_id', $userId)->get();
+        UserMember::create([
+            'owner_id'  => Auth::id(),
+            'member_id' => $user->id,
+        ]);
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'member'          => $member->only('id', 'name', 'email', 'phone', 'line_id'),
-                'loans_we_gave'   => $loansWeGave,
-                'loans_we_owe'    => $loansWeOwe,
-                'we_are_creditor' => (float) $loansWeGave->where('status', '!=', 'settled')->sum('remaining_amount'),
-                'we_are_debtor'   => (float) $loansWeOwe->where('status', '!=', 'settled')->sum('remaining_amount'),
-            ],
-        ]);
+            'data'    => $user,
+        ], 201);
     }
 
-    /** PUT /api/members/{user} */
-    public function updateMember(Request $request, User $member): JsonResponse
+    /** GET /api/members/{user} */
+    public function memberSummary(Request $request, $userId)
     {
+        $member = User::findOrFail($userId);
+
+        $userIdAuth = Auth::id();
+
+        $loansWeGave = Loan::where('lender_id', $userIdAuth)
+            ->where('borrower_id', $member->id)
+            ->get();
+
+        $loansWeOwe = Loan::where('lender_id', $member->id)
+            ->where('borrower_id', $userIdAuth)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'member' => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'line_id' => $member->line_id,
+                ],
+                'loans_we_gave' => $loansWeGave,
+                'loans_we_owe' => $loansWeOwe,
+                'we_are_creditor' => (float) $loansWeGave
+                    ->where('status', '!=', 'settled')
+                    ->sum('remaining_amount'),
+                'we_are_debtor' => (float) $loansWeOwe
+                    ->where('status', '!=', 'settled')
+                    ->sum('remaining_amount'),
+            ]
+        ]);
+    }
+    /** PUT /api/members/{user} */
+    public function updateMember(Request $request, $userId): JsonResponse
+    {
+        $member = User::findOrFail($userId);
+
         if (!str_starts_with($member->email ?? '', 'manual_')) {
-            return response()->json(['success' => false, 'message' => 'ไม่สามารถแก้ไขผู้ใช้ที่มีบัญชีในระบบได้'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถแก้ไขผู้ใช้ที่มีบัญชีในระบบได้'
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -246,35 +282,56 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'อัปเดตข้อมูลเพื่อนสำเร็จ',
-            'data'    => $member->fresh()->only('id', 'name', 'line_id', 'email', 'phone'),
+            'data' => $member->fresh()->only(
+                'id',
+                'name',
+                'line_id',
+                'email',
+                'phone'
+            ),
         ]);
     }
 
     /** DELETE /api/members/{user} */
-    public function deleteMember(User $member): JsonResponse
+    public function deleteMember($userId): JsonResponse
     {
+        $member = User::findOrFail($userId);
+
         if (!str_starts_with($member->email ?? '', 'manual_')) {
-            return response()->json(['success' => false, 'message' => 'ไม่สามารถลบผู้ใช้ที่มีบัญชีในระบบได้'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถลบผู้ใช้ที่มีบัญชีในระบบได้'
+            ], 403);
         }
 
-        $userId = Auth::id();
+        $authUserId = Auth::id();
 
         $hasActiveLoans = Loan::where('status', '!=', 'settled')
-            ->where(function ($q) use ($userId, $member) {
-                $q->where(fn($i) => $i->where('lender_id', $userId)->where('borrower_id', $member->id))
-                  ->orWhere(fn($i) => $i->where('lender_id', $member->id)->where('borrower_id', $userId));
+            ->where(function ($q) use ($authUserId, $member) {
+                $q->where(function ($i) use ($authUserId, $member) {
+                    $i->where('lender_id', $authUserId)
+                        ->where('borrower_id', $member->id);
+                })->orWhere(function ($i) use ($authUserId, $member) {
+                    $i->where('lender_id', $member->id)
+                        ->where('borrower_id', $authUserId);
+                });
             })
             ->exists();
 
         if ($hasActiveLoans) {
-            return response()->json(['success' => false, 'message' => 'ไม่สามารถลบเพื่อนที่มีหนี้ค้างอยู่ได้'], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถลบเพื่อนที่มีหนี้ค้างอยู่ได้'
+            ], 422);
         }
 
         $member->delete();
 
-        return response()->json(['success' => true, 'message' => 'ลบเพื่อนสำเร็จ']);
+        return response()->json([
+            'success' => true,
+            'message' => 'ลบเพื่อนสำเร็จ'
+        ]);
     }
-
     // ============================================================
     //  Loans
     // ============================================================
@@ -331,7 +388,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $loan->load(['lender:id,name,avatar', 'borrower:id,name,avatar'])
-                              ->append(['paid_amount', 'paid_percentage']),
+                ->append(['paid_amount', 'paid_percentage']),
         ], 201);
     }
 
@@ -344,7 +401,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $loan->load(['lender:id,name,avatar', 'borrower:id,name,avatar', 'payments.proofs'])
-                              ->append(['paid_amount', 'paid_percentage']),
+                ->append(['paid_amount', 'paid_percentage']),
         ]);
     }
 

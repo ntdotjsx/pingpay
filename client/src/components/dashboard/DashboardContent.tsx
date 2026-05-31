@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -373,6 +380,156 @@ function DueSoonStrip({ loans }: { loans: ApiLoan[] }) {
 }
 
 // ─── Loan detail modal (unchanged functionality, cleaner look) ────────────────
+
+function monthLabel(date: Date) {
+  return date.toLocaleDateString("th-TH", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function DashboardCalendar({
+  loans,
+  onSelectLoan,
+}: {
+  loans: ApiLoan[];
+  onSelectLoan: (loan: ApiLoan) => void;
+}) {
+  const [viewDate, setViewDate] = useState(() => new Date());
+  const today = new Date();
+  const todayKey = dateKey(today);
+  const todayStart = parseDate(todayKey).getTime();
+  const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  const firstCell = new Date(monthStart);
+  firstCell.setDate(monthStart.getDate() - monthStart.getDay());
+
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(firstCell);
+    day.setDate(firstCell.getDate() + index);
+    return day;
+  });
+
+  const dueLoans = loans
+    .filter((loan) => loan.status !== "settled" && loan.due_date)
+    .sort((a, b) => {
+      const aTime = a.due_date ? parseDate(a.due_date).getTime() : 0;
+      const bTime = b.due_date ? parseDate(b.due_date).getTime() : 0;
+      return aTime - bTime;
+    });
+
+  const byDate = dueLoans.reduce<Record<string, ApiLoan[]>>((map, loan) => {
+    if (!loan.due_date) return map;
+    const key = dateKey(parseDate(loan.due_date));
+    map[key] = [...(map[key] ?? []), loan];
+    return map;
+  }, {});
+
+  const goMonth = (offset: number) => {
+    setViewDate((current) => {
+      const next = new Date(current);
+      next.setMonth(current.getMonth() + offset);
+      return next;
+    });
+  };
+
+  return (
+    <section className="rounded-2xl border border-border/60 bg-background p-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[12px] font-semibold text-foreground">ปฏิทินครบกำหนด</p>
+          <p className="text-[10px] text-muted-foreground">{monthLabel(viewDate)}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => goMonth(-1)}
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="เดือนก่อนหน้า"
+          >
+            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewDate(new Date())}
+            className="h-[26px] rounded-md border border-border/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            วันนี้
+          </button>
+          <button
+            onClick={() => goMonth(1)}
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="เดือนถัดไป"
+          >
+            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-7 gap-0.5 text-center text-[9px] font-medium text-muted-foreground">
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((day) => (
+          <div key={day} className="py-[1px]">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-1 grid grid-cols-7 gap-0.5">
+        {cells.map((day) => {
+          const key = dateKey(day);
+          const items = byDate[key] ?? [];
+          const inMonth = day.getMonth() === viewDate.getMonth();
+          const isToday = key === todayKey;
+          const overdue = items.some((loan) => loan.status === "overdue");
+
+          return (
+            <button
+              key={key}
+              onClick={() => items[0] && onSelectLoan(items[0])}
+              disabled={items.length === 0}
+              className={`relative aspect-square min-h-[30px] rounded-md border text-left transition-colors ${
+                items.length
+                  ? overdue
+                    ? "border-red-200 bg-red-50 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/20"
+                    : "border-amber-200 bg-amber-50 hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/20"
+                  : "border-transparent hover:bg-muted/40"
+              } ${inMonth ? "text-foreground" : "text-muted-foreground/35"}`}
+            >
+              <span
+                className={`absolute left-1 top-1 text-[9px] font-medium ${
+                  isToday ? "rounded-full bg-foreground px-1 py-[1px] text-background" : ""
+                }`}
+              >
+                {day.getDate()}
+              </span>
+              {items.length > 0 && (
+                <span className="absolute bottom-[2px] left-1 right-1 flex items-center gap-1">
+                  <span className={`h-1 w-1 rounded-full ${overdue ? "bg-red-500" : "bg-amber-500"}`} />
+                  <span className="truncate text-[8px] font-semibold tabular-nums">
+                    {items.length}
+                  </span>
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 function LoanDetailModal({
   loan,
@@ -1119,6 +1276,7 @@ export function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [pendingMap, setPendingMap] = useState<Record<number, number>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<ApiLoan | null>(null);
   const [tab, setTab] = useState<"active" | "settled">("active");
   const [lenderLinkCopied, setLenderLinkCopied] = useState(false);
@@ -1163,16 +1321,21 @@ export function DashboardContent() {
   if (loading)
     return (
       <div className="space-y-4 p-1">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-10 rounded-xl" />
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 rounded-xl" />
-        ))}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-3">
+            <Skeleton className="h-28 rounded-2xl" />
+            <Skeleton className="h-10 rounded-xl" />
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-[420px] rounded-2xl" />
+        </div>
       </div>
     );
 
@@ -1194,7 +1357,7 @@ export function DashboardContent() {
   return (
     <div className="space-y-4 p-1">
       {/* ── Top row: metrics ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
           label="ยอดสุทธิ"
           value={fmt(Math.abs(netBalance))}
@@ -1212,7 +1375,7 @@ export function DashboardContent() {
       </div>
 
       {/* ── Balance donut + lender link ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 lg:grid-cols-2">
         {/* Donut */}
         <div className="rounded-2xl border border-border/60 bg-background p-5">
           <p className="text-sm font-semibold mb-4">สัดส่วนหนี้</p>
@@ -1280,14 +1443,19 @@ export function DashboardContent() {
         <DueSoonStrip loans={data.due_soon} />
       )}
 
+      <DashboardCalendar
+        loans={activeLoans}
+        onSelectLoan={setSelectedLoan}
+      />
+
       {/* ── Loan list header ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-muted/40 p-1 rounded-xl">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full gap-1 bg-muted/40 p-1 rounded-xl sm:w-auto">
           {(["active", "settled"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums ${
+              className={`flex-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums sm:flex-none ${
                 tab === t
                   ? "bg-background shadow-sm text-foreground"
                   : "text-muted-foreground hover:text-foreground"
