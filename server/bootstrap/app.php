@@ -16,8 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['api/*']);
         $middleware->redirectGuestsTo(fn() => abort(401));
 
-        // Add before auth runs
+        // อ่าน Sanctum token จาก HttpOnly cookie (LINE login)
         $middleware->prependToGroup('api', \App\Http\Middleware\TokenFromCookie::class);
+
+        // Alias สำหรับ guest route
+        $middleware->alias([
+            'guest.token' => \App\Http\Middleware\ValidGuestToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {

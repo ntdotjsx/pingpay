@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DebtListLayout from "../../layouts/DebtList.astro";
+import LenderPage from "../../components/debt/LenderPage.tsx";
+---
+
+<DebtListLayout title="รายการหนี้">
+  <LenderPage client:only="react" />
+</DebtListLayout>
