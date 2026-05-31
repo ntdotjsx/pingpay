@@ -24,7 +24,7 @@ export function AppSidebar() {
 						<LogoIcon />
 						<span className="font-medium">PINGPAY</span>
 					</a>
-				</SidebarMenuhttps://github.com/ntdotjsx/pingpay/pull/1/conflict?name=client%252Fsrc%252Fcomponents%252Fdashboard%252Fapp-sidebar.tsx&base_oid=8f1a64654e1e5f56bf3d7ce230b95c3fbd52e1cb&head_oid=b0cbd3b215b84c76720702940e2e006539ce5fdcButton>
+				</SidebarMenuButton>
 			</SidebarHeader>
 			<SidebarContent>
 				{navGroups.map((group, index) => (

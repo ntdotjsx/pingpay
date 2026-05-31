@@ -17,8 +17,8 @@ export interface ApiLoan {
   loan_date: string;
   due_date: string | null;
   status: "active" | "settled" | "overdue";
-  lender?: { id: number; name: string; avatar?: string | null };
-  borrower?: { id: number; name: string; avatar?: string | null };
+  lender?: { id: number; name: string; avatar?: string | null; line_id?: string | null };
+  borrower?: { id: number; name: string; avatar?: string | null; line_id?: string | null };
   payments?: ApiPayment[];
   paid_amount?: number;
   paid_percentage?: number;
@@ -282,6 +282,13 @@ export const api = {
   async regenerateLink(loanId: number) {
     return apiFetch<{ guest_link: string }>(`/loans/${loanId}/regenerate-link`, {
       method: "POST",
+    });
+  },
+
+  async remindLoan(loanId: number, message?: string) {
+    return apiFetch<{ success: boolean; message: string }>(`/loans/${loanId}/remind`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
     });
   },
 

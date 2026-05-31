@@ -36,7 +36,7 @@ class UserController extends Controller
             ->with('lender:id,name,avatar')
             ->get();
 
-        $totalLent     = (float) $loansAsLender->sum('amount');
+        $totalLent = (float) $loansAsLender->sum('amount');
         $totalBorrowed = (float) $loansAsBorrower->sum('amount');
 
         // ยอดค้างรับ (remaining ของ loans ที่ยังไม่ settled)
@@ -57,10 +57,11 @@ class UserController extends Controller
             ->groupBy('borrower_id')
             ->map(function ($group, $borrowerId) {
                 $first = $group->first();
+
                 return [
                     'borrower_id' => $borrowerId,
-                    'total_owed'  => (float) $group->sum('remaining_amount'),
-                    'borrower'    => $first->borrower
+                    'total_owed' => (float) $group->sum('remaining_amount'),
+                    'borrower' => $first->borrower
                         ? ['id' => $first->borrower->id, 'name' => $first->borrower->name]
                         : ['id' => $borrowerId, 'name' => 'Unknown'],
                 ];
@@ -73,10 +74,11 @@ class UserController extends Controller
             ->groupBy('lender_id')
             ->map(function ($group, $lenderId) {
                 $first = $group->first();
+
                 return [
                     'lender_id' => $lenderId,
                     'total_owe' => (float) $group->sum('remaining_amount'),
-                    'lender'    => $first->lender
+                    'lender' => $first->lender
                         ? ['id' => $first->lender->id, 'name' => $first->lender->name]
                         : ['id' => $lenderId, 'name' => 'Unknown'],
                 ];
@@ -96,13 +98,13 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'net_balance'    => $netBalance,
-                'total_lent'     => $totalLent,
+            'data' => [
+                'net_balance' => $netBalance,
+                'total_lent' => $totalLent,
                 'total_borrowed' => $totalBorrowed,
-                'creditors'      => $creditors,
-                'debtors'        => $debtors,
-                'due_soon'       => $dueSoon,
+                'creditors' => $creditors,
+                'debtors' => $debtors,
+                'due_soon' => $dueSoon,
             ],
         ]);
     }
@@ -121,10 +123,11 @@ class UserController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'  => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'phone' => 'nullable|string|max:20',
         ]);
         $request->user()->update($validated);
+
         return response()->json(['success' => true, 'data' => $request->user()->fresh()]);
     }
 
@@ -135,6 +138,7 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
         $request->user()->update(['password' => $validated['password']]);
+
         return response()->json(['success' => true, 'message' => 'เปลี่ยนรหัสผ่านสำเร็จ']);
     }
 
@@ -172,14 +176,14 @@ class UserController extends Controller
                     ->sum('remaining_amount');
 
                 return [
-                    'id'                 => $user->id,
-                    'name'               => $user->name,
-                    'email'              => $user->email,
-                    'phone'              => $user->phone,
-                    'line_id'            => $user->line_id,
-                    'we_are_creditor'    => (float) $weAreCreditor,
-                    'we_are_debtor'      => (float) $weAreDebtor,
-                    'active_loans_count' => (int)(
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'line_id' => $user->line_id,
+                    'we_are_creditor' => (float) $weAreCreditor,
+                    'we_are_debtor' => (float) $weAreDebtor,
+                    'active_loans_count' => (int) (
                         ($weAreCreditor > 0 ? 1 : 0) +
                         ($weAreDebtor > 0 ? 1 : 0)
                     ),
@@ -188,7 +192,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $members
+            'data' => $members,
         ]);
     }
 
@@ -196,26 +200,26 @@ class UserController extends Controller
     public function createMember(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'    => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'line_id' => 'nullable|string|max:100|unique:users,line_id',
-            'phone'   => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
         ]);
 
         $user = User::create([
-            'name'    => $validated['name'],
-            'email'   => 'manual_' . uniqid() . '@manual.local',
+            'name' => $validated['name'],
+            'email' => 'manual_'.uniqid().'@manual.local',
             'line_id' => $validated['line_id'] ?? null,
-            'phone'   => $validated['phone'] ?? null,
+            'phone' => $validated['phone'] ?? null,
         ]);
 
         UserMember::create([
-            'owner_id'  => Auth::id(),
+            'owner_id' => Auth::id(),
             'member_id' => $user->id,
         ]);
 
         return response()->json([
             'success' => true,
-            'data'    => $user,
+            'data' => $user,
         ], 201);
     }
 
@@ -252,31 +256,32 @@ class UserController extends Controller
                 'we_are_debtor' => (float) $loansWeOwe
                     ->where('status', '!=', 'settled')
                     ->sum('remaining_amount'),
-            ]
+            ],
         ]);
     }
+
     /** PUT /api/members/{user} */
     public function updateMember(Request $request, $userId): JsonResponse
     {
         $member = User::findOrFail($userId);
 
-        if (!str_starts_with($member->email ?? '', 'manual_')) {
+        if (! str_starts_with($member->email ?? '', 'manual_')) {
             return response()->json([
                 'success' => false,
-                'message' => 'ไม่สามารถแก้ไขผู้ใช้ที่มีบัญชีในระบบได้'
+                'message' => 'ไม่สามารถแก้ไขผู้ใช้ที่มีบัญชีในระบบได้',
             ], 403);
         }
 
         $validated = $request->validate([
-            'name'    => 'required|string|max:100',
-            'line_id' => 'nullable|string|max:100|unique:users,line_id,' . $member->id,
-            'phone'   => 'nullable|string|max:20',
+            'name' => 'required|string|max:100',
+            'line_id' => 'nullable|string|max:100|unique:users,line_id,'.$member->id,
+            'phone' => 'nullable|string|max:20',
         ]);
 
         $member->update([
-            'name'    => $validated['name'],
+            'name' => $validated['name'],
             'line_id' => $validated['line_id'] ?? null,
-            'phone'   => $validated['phone'] ?? null,
+            'phone' => $validated['phone'] ?? null,
         ]);
 
         return response()->json([
@@ -297,10 +302,10 @@ class UserController extends Controller
     {
         $member = User::findOrFail($userId);
 
-        if (!str_starts_with($member->email ?? '', 'manual_')) {
+        if (! str_starts_with($member->email ?? '', 'manual_')) {
             return response()->json([
                 'success' => false,
-                'message' => 'ไม่สามารถลบผู้ใช้ที่มีบัญชีในระบบได้'
+                'message' => 'ไม่สามารถลบผู้ใช้ที่มีบัญชีในระบบได้',
             ], 403);
         }
 
@@ -321,7 +326,7 @@ class UserController extends Controller
         if ($hasActiveLoans) {
             return response()->json([
                 'success' => false,
-                'message' => 'ไม่สามารถลบเพื่อนที่มีหนี้ค้างอยู่ได้'
+                'message' => 'ไม่สามารถลบเพื่อนที่มีหนี้ค้างอยู่ได้',
             ], 422);
         }
 
@@ -329,7 +334,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'ลบเพื่อนสำเร็จ'
+            'message' => 'ลบเพื่อนสำเร็จ',
         ]);
     }
     // ============================================================
@@ -344,21 +349,21 @@ class UserController extends Controller
     public function loans(Request $request): JsonResponse
     {
         $userId = Auth::id();
-        $role   = $request->query('role');   // 'lender' | 'borrower' | null = ทั้งคู่
+        $role = $request->query('role');   // 'lender' | 'borrower' | null = ทั้งคู่
         $status = $request->query('status');
 
-        $query = Loan::with(['lender:id,name,avatar', 'borrower:id,name,avatar'])
-            ->when($role === 'lender',   fn($q) => $q->where('lender_id', $userId))
-            ->when($role === 'borrower', fn($q) => $q->where('borrower_id', $userId))
-            ->when(!$role, fn($q) => $q->where(fn($i) => $i->where('lender_id', $userId)->orWhere('borrower_id', $userId)))
-            ->when($status, fn($q) => $q->where('status', $status))
+        $query = Loan::with(['lender:id,name,avatar,line_id', 'borrower:id,name,avatar,line_id'])
+            ->when($role === 'lender', fn ($q) => $q->where('lender_id', $userId))
+            ->when($role === 'borrower', fn ($q) => $q->where('borrower_id', $userId))
+            ->when(! $role, fn ($q) => $q->where(fn ($i) => $i->where('lender_id', $userId)->orWhere('borrower_id', $userId)))
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->latest();
 
         // ใช้ paginate เพื่อให้ตรงกับ data.data.data ที่ client คาดหวัง
         $paginated = $query->paginate(100);
 
         // เพิ่ม computed attributes
-        $paginated->getCollection()->transform(fn($loan) => $loan->append(['paid_amount', 'paid_percentage']));
+        $paginated->getCollection()->transform(fn ($loan) => $loan->append(['paid_amount', 'paid_percentage']));
 
         return response()->json(['success' => true, 'data' => $paginated]);
     }
@@ -368,26 +373,26 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'borrower_id' => 'required|integer|exists:users,id',
-            'amount'      => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:1',
             'description' => 'nullable|string|max:500',
-            'due_date'    => 'nullable|date',
-            'loan_date'   => 'nullable|date',
+            'due_date' => 'nullable|date',
+            'loan_date' => 'nullable|date',
         ]);
 
         $loan = Loan::create([
-            'lender_id'        => Auth::id(),
-            'borrower_id'      => $validated['borrower_id'],
-            'amount'           => $validated['amount'],
+            'lender_id' => Auth::id(),
+            'borrower_id' => $validated['borrower_id'],
+            'amount' => $validated['amount'],
             'remaining_amount' => $validated['amount'],
-            'description'      => $validated['description'] ?? null,
-            'due_date'         => $validated['due_date'] ?? null,
-            'loan_date'        => $validated['loan_date'] ?? now()->toDateString(),
-            'status'           => Loan::STATUS_ACTIVE,
+            'description' => $validated['description'] ?? null,
+            'due_date' => $validated['due_date'] ?? null,
+            'loan_date' => $validated['loan_date'] ?? now()->toDateString(),
+            'status' => Loan::STATUS_ACTIVE,
         ]);
 
         return response()->json([
             'success' => true,
-            'data'    => $loan->load(['lender:id,name,avatar', 'borrower:id,name,avatar'])
+            'data' => $loan->load(['lender:id,name,avatar,line_id', 'borrower:id,name,avatar,line_id'])
                 ->append(['paid_amount', 'paid_percentage']),
         ], 201);
     }
@@ -400,7 +405,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $loan->load(['lender:id,name,avatar', 'borrower:id,name,avatar', 'payments.proofs'])
+            'data' => $loan->load(['lender:id,name,avatar,line_id', 'borrower:id,name,avatar,line_id', 'payments.proofs'])
                 ->append(['paid_amount', 'paid_percentage']),
         ]);
     }
@@ -412,7 +417,7 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'description' => 'nullable|string|max:500',
-            'due_date'    => 'nullable|date',
+            'due_date' => 'nullable|date',
         ]);
 
         $loan->update($validated);
@@ -440,17 +445,17 @@ class UserController extends Controller
         abort_unless($loan->borrower_id === Auth::id(), 403);
 
         $validated = $request->validate([
-            'amount'  => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:1',
             'paid_at' => 'nullable|date',
-            'note'    => 'nullable|string|max:300',
+            'note' => 'nullable|string|max:300',
         ]);
 
         $payment = $loan->payments()->create([
             'paid_by' => Auth::id(),
-            'amount'  => $validated['amount'],
+            'amount' => $validated['amount'],
             'paid_at' => $validated['paid_at'] ?? now(),
-            'note'    => $validated['note'] ?? null,
-            'status'  => 'pending',
+            'note' => $validated['note'] ?? null,
+            'status' => 'pending',
         ]);
 
         return response()->json(['success' => true, 'data' => $payment], 201);

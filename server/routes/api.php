@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\ValidGuestToken;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Guest link management
         Route::get('{loan}/guest-link',      [LoanController::class, 'guestLink']);
         Route::post('{loan}/regenerate-link', [LoanController::class, 'regenerateLink']);
+        Route::post('{loan}/remind', [LoanController::class, 'remind']);
 
         // Payment confirmation
         Route::get('{loan}/payments/pending',         [LoanController::class, 'pendingPayments']);

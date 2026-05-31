@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\LoanPayment;
+use App\Services\LineMessagingService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class LoanController extends Controller
 {
@@ -41,6 +42,75 @@ class LoanController extends Controller
         return response()->json([
             'guest_link' => $loan->fresh()->guestLink(),
         ]);
+    }
+
+    /**
+     * POST /api/loans/{loan}/remind
+     * ส่ง LINE reminder ไปหาลูกหนี้ด้วย Channel access token ของเจ้าหนี้
+     */
+    public function remind(Request $request, Loan $loan, LineMessagingService $line): JsonResponse
+    {
+        abort_unless($loan->lender_id === $request->user()->id, 403);
+
+        if ($loan->status === Loan::STATUS_SETTLED || (float) $loan->remaining_amount <= 0) {
+            return response()->json(['message' => 'รายการนี้ชำระครบแล้ว'], 422);
+        }
+
+        $validated = $request->validate([
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $lender = $request->user();
+        $borrower = $loan->borrower;
+
+        if (! filled($lender->line_bot_token)) {
+            return response()->json(['message' => 'ยังไม่ได้ตั้งค่า LINE Messaging API token'], 422);
+        }
+
+        if (! $borrower || ! filled($borrower->line_id)) {
+            return response()->json(['message' => 'ลูกหนี้ยังไม่มี LINE ID'], 422);
+        }
+
+        $message = $validated['message'] ?? $this->defaultReminderMessage($loan);
+
+        try {
+            $line->pushText($lender->line_bot_token, $borrower->line_id, $message);
+        } catch (RequestException $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'ส่ง LINE reminder ไม่สำเร็จ กรุณาตรวจ token หรือสถานะการเพิ่มเพื่อนของ LINE Bot',
+            ], 502);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ส่ง LINE reminder แล้ว',
+        ]);
+    }
+
+    private function defaultReminderMessage(Loan $loan): string
+    {
+        $loan->loadMissing(['lender:id,name', 'borrower:id,name']);
+
+        $amount = number_format((float) $loan->remaining_amount, 2);
+        $lines = [
+            'แจ้งเตือนยอดค้างชำระจาก PingPay',
+            "คุณ {$loan->borrower->name} มียอดค้าง ฿{$amount}",
+        ];
+
+        if ($loan->description) {
+            $lines[] = "รายการ: {$loan->description}";
+        }
+
+        if ($loan->due_date) {
+            $lines[] = 'ครบกำหนด: '.$loan->due_date->format('d/m/Y');
+        }
+
+        $lines[] = "จาก {$loan->lender->name}";
+        $lines[] = $loan->guestLink();
+
+        return implode("\n", $lines);
     }
 
     // ============================================================
@@ -81,7 +151,7 @@ class LoanController extends Controller
 
         return response()->json([
             'message' => 'ยืนยันการชำระสำเร็จ',
-            'loan'    => $loan->fresh(['payments']),
+            'loan' => $loan->fresh(['payments']),
         ]);
     }
 

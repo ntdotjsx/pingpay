@@ -306,67 +306,70 @@ function LoanRow({
         onClick={onClick}
         className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left group"
       >
-      <Avatar name={borrowerName} avatar={loan.borrower?.avatar} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-foreground truncate">
-            {borrowerName}
-          </p>
-          {isDueSoon && (
-            <Hint label={dueSoonLabel}>
-              <span className="relative flex h-3 w-3 shrink-0 items-center justify-center" aria-label={dueSoonLabel}>
-                <span className="absolute h-3 w-3 animate-ping rounded-full bg-red-500/35" />
-                <span className="relative h-1.5 w-1.5 rounded-full bg-red-500" />
+        <Avatar name={borrowerName} avatar={loan.borrower?.avatar} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground truncate">
+              {borrowerName}
+            </p>
+            {isDueSoon && (
+              <Hint label={dueSoonLabel}>
+                <span
+                  className="relative flex h-3 w-3 shrink-0 items-center justify-center"
+                  aria-label={dueSoonLabel}
+                >
+                  <span className="absolute h-3 w-3 animate-ping rounded-full bg-red-500/35" />
+                  <span className="relative h-1.5 w-1.5 rounded-full bg-red-500" />
+                </span>
+              </Hint>
+            )}
+            {pendingCount > 0 && (
+              <span className="shrink-0 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {pendingCount}
               </span>
-            </Hint>
-          )}
-          {pendingCount > 0 && (
-            <span className="shrink-0 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-              {pendingCount}
-            </span>
-          )}
-          {loan.group_id && (
-            <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-              กลุ่ม
-            </span>
-          )}
+            )}
+            {loan.group_id && (
+              <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                กลุ่ม
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            {pct > 0 && loan.status !== "settled" && (
+              <div className="flex-1 max-w-24">
+                <Progress value={pct} className="h-1" />
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground truncate">
+              {loan.description ?? "ไม่มีหมายเหตุ"}
+              {loan.loan_date ? ` · ${relativeDate(loan.loan_date)}` : ""}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          {pct > 0 && loan.status !== "settled" && (
-            <div className="flex-1 max-w-24">
-              <Progress value={pct} className="h-1" />
-            </div>
-          )}
-          <p className="text-[11px] text-muted-foreground truncate">
-            {loan.description ?? "ไม่มีหมายเหตุ"}
-            {loan.loan_date ? ` · ${relativeDate(loan.loan_date)}` : ""}
+        <div className="text-right shrink-0 space-y-1">
+          <p
+            className={`text-sm font-semibold tabular-nums ${
+              loan.status === "settled" ? "text-emerald-600" : "text-foreground"
+            }`}
+          >
+            {loan.status === "settled" ? "ครบ" : fmt(remaining)}
           </p>
+          <Badge
+            variant="outline"
+            className={`text-[10px] px-1.5 py-0 h-4 leading-none ${st.cls}`}
+          >
+            {st.text}
+          </Badge>
         </div>
-      </div>
-      <div className="text-right shrink-0 space-y-1">
-        <p
-          className={`text-sm font-semibold tabular-nums ${
-            loan.status === "settled" ? "text-emerald-600" : "text-foreground"
-          }`}
+        <svg
+          className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
         >
-          {loan.status === "settled" ? "ครบ" : fmt(remaining)}
-        </p>
-        <Badge
-          variant="outline"
-          className={`text-[10px] px-1.5 py-0 h-4 leading-none ${st.cls}`}
-        >
-          {st.text}
-        </Badge>
-      </div>
-      <svg
-        className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </button>
     </Hint>
   );
@@ -418,58 +421,6 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
     </div>
   );
 }
-
-// ─── Due soon card ────────────────────────────────────────────────────────────
-
-function DueSoonStrip({ loans }: { loans: ApiLoan[] }) {
-  if (!loans.length) return null;
-  return (
-    <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-amber-200/50 dark:border-amber-800/30 flex items-center gap-2">
-        <svg
-          className="w-3.5 h-3.5 text-amber-500 shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-        
-      </div>
-      <div className="divide-y divide-amber-200/40 dark:divide-amber-800/20">
-        {loans.slice(0, 3).map((loan) => (
-          <div
-            key={loan.id}
-            className="flex items-center justify-between px-4 py-2.5 gap-3"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Avatar name={loan.borrower?.name ?? "?"} size="xs" />
-              <span className="text-xs text-amber-900 dark:text-amber-300 font-medium truncate">
-                {loan.borrower?.name ?? `#${loan.id}`}
-              </span>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 tabular-nums">
-                {fmt(parseFloat(loan.remaining_amount))}
-              </p>
-              {loan.due_date && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-500">
-                  {new Date(loan.due_date).toLocaleDateString("th-TH", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Loan detail modal (unchanged functionality, cleaner look) ────────────────
 
 function monthLabel(date: Date) {
@@ -545,39 +496,55 @@ function DashboardCalendar({
     <section className="rounded-2xl border border-border/60 bg-background p-2.5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[12px] font-semibold text-foreground">ปฏิทินครบกำหนด</p>
-          <p className="text-[10px] text-muted-foreground">{monthLabel(viewDate)}</p>
+          <p className="text-[12px] font-semibold text-foreground">
+            ปฏิทินครบกำหนด
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {monthLabel(viewDate)}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <Hint label="เดือนก่อนหน้า">
-          <button
-            onClick={() => goMonth(-1)}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="เดือนก่อนหน้า"
-          >
-            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
+            <button
+              onClick={() => goMonth(-1)}
+              className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="เดือนก่อนหน้า"
+            >
+              <svg
+                className="h-2.5 w-2.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
           </Hint>
           <Hint label="กลับไปเดือนปัจจุบัน">
-          <button
-            onClick={() => setViewDate(new Date())}
-            className="h-[26px] rounded-md border border-border/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            วันนี้
-          </button>
+            <button
+              onClick={() => setViewDate(new Date())}
+              className="h-[26px] rounded-md border border-border/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              วันนี้
+            </button>
           </Hint>
           <Hint label="เดือนถัดไป">
-          <button
-            onClick={() => goMonth(1)}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="เดือนถัดไป"
-          >
-            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
+            <button
+              onClick={() => goMonth(1)}
+              className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="เดือนถัดไป"
+            >
+              <svg
+                className="h-2.5 w-2.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
           </Hint>
         </div>
       </div>
@@ -633,7 +600,9 @@ function DashboardCalendar({
             >
               <span
                 className={`absolute left-1 top-1 text-[9px] font-medium ${
-                  isToday ? "rounded-full bg-foreground px-1 py-[1px] text-background" : ""
+                  isToday
+                    ? "rounded-full bg-foreground px-1 py-[1px] text-background"
+                    : ""
                 }`}
               >
                 {day.getDate()}
@@ -1534,48 +1503,48 @@ export function DashboardContent() {
         {/* Lender link */}
         {user?.line_id ? (
           <Hint label="คัดลอกลิงก์สำหรับส่งให้ลูกหนี้">
-          <button
-            onClick={handleCopyLenderLink}
-            className="rounded-2xl border border-border/60 bg-background p-4 text-left hover:bg-muted/30 transition-colors group"
-          >
-            <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
-              ลิงก์ของฉัน
-            </p>
-            <div className="flex items-start gap-2">
-              <div className="w-8 h-8 rounded-xl bg-foreground/6 flex items-center justify-center shrink-0 mt-0.5">
-                {lenderLinkCopied ? (
-                  <svg
-                    className="w-4 h-4 text-emerald-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-4 h-4 text-muted-foreground"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                )}
+            <button
+              onClick={handleCopyLenderLink}
+              className="rounded-2xl border border-border/60 bg-background p-4 text-left hover:bg-muted/30 transition-colors group"
+            >
+              <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
+                ลิงก์ของฉัน
+              </p>
+              <div className="flex items-start gap-2">
+                <div className="w-8 h-8 rounded-xl bg-foreground/6 flex items-center justify-center shrink-0 mt-0.5">
+                  {lenderLinkCopied ? (
+                    <svg
+                      className="w-4 h-4 text-emerald-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-4 h-4 text-muted-foreground"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground leading-tight">
+                    {lenderLinkCopied ? "คัดลอกแล้ว!" : "ส่งให้ลูกหนี้กด"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    /lender/{user.line_id}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground leading-tight">
-                  {lenderLinkCopied ? "คัดลอกแล้ว!" : "ส่งให้ลูกหนี้กด"}
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                  /lender/{user.line_id}
-                </p>
-              </div>
-            </div>
-          </button>
+            </button>
           </Hint>
         ) : (
           <div className="rounded-2xl border border-dashed border-border/60 bg-background/50 p-4 flex items-center justify-center">
@@ -1588,74 +1557,70 @@ export function DashboardContent() {
         )}
       </div>
 
-      {/* ── Due soon ── */}
-      {data && data.due_soon.length > 0 && (
-        <DueSoonStrip loans={data.due_soon} />
-      )}
-
-
       {/* ── Loan list header ── */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full gap-1 bg-muted/40 p-1 rounded-xl sm:w-auto">
           {(["active", "settled"] as const).map((t) => (
             <Hint
               key={t}
-              label={t === "active" ? "ดูรายการค้างชำระ" : "ดูรายการที่ชำระครบแล้ว"}
+              label={
+                t === "active" ? "ดูรายการค้างชำระ" : "ดูรายการที่ชำระครบแล้ว"
+              }
             >
-            <button
-              onClick={() => setTab(t)}
-              className={`flex-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums sm:flex-none ${
-                tab === t
-                  ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t === "active"
-                ? `ค้างอยู่${activeLoans.length ? ` (${activeLoans.length})` : ""}`
-                : `ครบแล้ว${settledLoans.length ? ` (${settledLoans.length})` : ""}`}
-            </button>
+              <button
+                onClick={() => setTab(t)}
+                className={`flex-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums sm:flex-none ${
+                  tab === t
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t === "active"
+                  ? `ค้างอยู่${activeLoans.length ? ` (${activeLoans.length})` : ""}`
+                  : `ครบแล้ว${settledLoans.length ? ` (${settledLoans.length})` : ""}`}
+              </button>
             </Hint>
           ))}
         </div>
         <div className="flex gap-2 sm:justify-end">
           <Hint label="เปิดปฏิทินครบกำหนด">
-          <Button
-            onClick={() => setShowCalendar(true)}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-8 px-3 text-xs"
-          >
-            <svg
-              className="w-3 h-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+            <Button
+              onClick={() => setShowCalendar(true)}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 px-3 text-xs"
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            ปฏิทิน
-          </Button>
+              <svg
+                className="w-3 h-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              ปฏิทิน
+            </Button>
           </Hint>
           <Hint label="เพิ่มรายการหนี้ใหม่">
-          <Button
-            onClick={() => setShowAdd(true)}
-            size="sm"
-            className="gap-1.5 shrink-0 h-8 px-3 text-xs"
-          >
-            <svg
-              className="w-3 h-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
+            <Button
+              onClick={() => setShowAdd(true)}
+              size="sm"
+              className="gap-1.5 shrink-0 h-8 px-3 text-xs"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            เพิ่มรายการ
-          </Button>
+              <svg
+                className="w-3 h-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              เพิ่มรายการ
+            </Button>
           </Hint>
         </div>
       </div>
@@ -1674,12 +1639,12 @@ export function DashboardContent() {
               </p>
               {tab === "active" && (
                 <Hint label="สร้างรายการหนี้รายการแรก">
-                <button
-                  onClick={() => setShowAdd(true)}
-                  className="mt-3 text-xs text-primary underline underline-offset-2"
-                >
-                  + เพิ่มรายการแรก
-                </button>
+                  <button
+                    onClick={() => setShowAdd(true)}
+                    className="mt-3 text-xs text-primary underline underline-offset-2"
+                  >
+                    + เพิ่มรายการแรก
+                  </button>
                 </Hint>
               )}
             </div>
