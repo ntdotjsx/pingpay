@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DebtListLayout from "../../layouts/DebtList.astro";
+import GuestPayApp from "../../components/debt/GuestPayApp.tsx";
+---
+
+<DebtListLayout title="แจ้งชำระเงิน">
+  <GuestPayApp client:only="react" />
+</DebtListLayout>

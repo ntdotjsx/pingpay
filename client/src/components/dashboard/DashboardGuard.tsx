@@ -12,7 +12,7 @@ export function DashboardGuard({ children }: Props) {
   useEffect(() => {
     if (!loading && !user) {
       // ไม่มี session → กลับไป /auth
-      window.location.replace("/auth");
+      window.location.replace("/auth/signin");
     }
   }, [user, loading]);
 

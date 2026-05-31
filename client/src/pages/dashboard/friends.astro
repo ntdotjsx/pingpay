@@ -5,7 +5,5 @@ import { DashboardApp } from "@/components/dashboard/DashboardApp";
 ---
 
 <DashboardLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
-  <DashboardApp client:only="react">
-    <!-- <h1>เพื่อนทั้งหมด</h1> -->
-  </DashboardApp>
+  <DashboardApp page="friends" client:only="react" />
 </DashboardLayout>

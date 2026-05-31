@@ -24,31 +24,9 @@ export function AppSidebar() {
 						<LogoIcon />
 						<span className="font-medium">PINGPAY</span>
 					</a>
-				</SidebarMenuButton>
+				</SidebarMenuhttps://github.com/ntdotjsx/pingpay/pull/1/conflict?name=client%252Fsrc%252Fcomponents%252Fdashboard%252Fapp-sidebar.tsx&base_oid=8f1a64654e1e5f56bf3d7ce230b95c3fbd52e1cb&head_oid=b0cbd3b215b84c76720702940e2e006539ce5fdcButton>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenuItem className="flex items-center gap-2">
-						<SidebarMenuButton
-							className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-							tooltip="Quick Create"
-						>
-							<PlusIcon
-							/>
-							<span>เพิ่มรายการใหม่</span>
-						</SidebarMenuButton>
-						<Button
-							aria-label="Search conversations"
-							className="size-8 group-data-[collapsible=icon]:opacity-0"
-							size="icon"
-							variant="outline"
-						>
-							<SearchIcon
-							/>
-							<span className="sr-only">Search conversations</span>
-						</Button>
-					</SidebarMenuItem>
-				</SidebarGroup>
 				{navGroups.map((group, index) => (
 					<NavGroup key={`sidebar-group-${index}`} {...group} />
 				))}

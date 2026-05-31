@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -8,6 +9,7 @@ import {
   type Debtor,
 } from "@/lib/debtStore";
 import { DebtorAvatar } from "./DebtorAvatar";
+import { api } from "@/lib/api";
 
 interface DebtorRowProps {
   debtor: Debtor;
@@ -17,6 +19,19 @@ interface DebtorRowProps {
 export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
   const paid = isPaid(debtor);
   const pct = progressPct(debtor);
+  const [copying, setCopying] = useState(false);
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCopying(true);
+    try {
+      const { guest_link } = await api.getGuestLink(debtor.loanId);
+      await navigator.clipboard.writeText(guest_link);
+      setTimeout(() => setCopying(false), 1500);
+    } catch {
+      setCopying(false);
+    }
+  };
 
   return (
     <div
@@ -59,6 +74,26 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
           )}
         </div>
       </div>
+
+      {/* copy link button (ส่ง link ให้ลูกหนี้) */}
+      {!paid && (
+        <button
+          onClick={handleCopyLink}
+          title="คัดลอกลิงก์ให้ลูกหนี้"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+        >
+          {copying ? (
+            <svg className="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* right: amount */}
       <div className="text-right shrink-0">

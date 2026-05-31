@@ -1,6 +1,6 @@
 // lib/auth.ts
 
-const API_BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
 const USER_CACHE_KEY = "auth_user";
 
 export interface AuthUser {
@@ -8,6 +8,7 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar: string | null;
+  line_id?: string | null;
 }
 
 export function getCachedUser(): AuthUser | null {

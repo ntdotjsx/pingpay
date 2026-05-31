@@ -9,7 +9,8 @@ interface PaymentModalProps {
   debtor: Debtor | null
   open: boolean
   onClose: () => void
-  onConfirm: (debtorId: number, amount: number) => void
+  // รับ loanId แทน debtorId เพื่อส่งให้ API ตรงๆ
+  onConfirm: (loanId: number, amount: number) => void
 }
 
 export function PaymentModal({ debtor, open, onClose, onConfirm }: PaymentModalProps) {
@@ -28,12 +29,12 @@ export function PaymentModal({ debtor, open, onClose, onConfirm }: PaymentModalP
 
   const handleConfirm = () => {
     if (mode === "full") {
-      onConfirm(debtor.id, owed)
+      onConfirm(debtor.loanId, owed)
     } else {
       const amt = parseFloat(partAmt) || 0
       if (amt <= 0)  { setError("กรุณาใส่จำนวนเงิน"); return }
       if (amt > owed) { setError("จำนวนเงินมากเกินยอดค้าง"); return }
-      onConfirm(debtor.id, amt)
+      onConfirm(debtor.loanId, amt)
     }
     setPartAmt("")
     setError("")

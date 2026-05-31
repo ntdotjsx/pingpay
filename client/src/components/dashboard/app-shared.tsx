@@ -26,26 +26,16 @@ export type SidebarNavGroup = {
 
 export const navGroups: SidebarNavGroup[] = [
   {
-    items: [
-      {
-        title: "ภาพรวมทั้งหมด",
-        path: "/dashboard/",
-        icon: <LayoutGridIcon />,
-        isActive: true,
-      },
-    ],
-  },
-  {
     label: "รายการ",
     items: [
       {
         title: "รายการทั้งหมด",
-        path: "#/queue",
+        path: "/dashboard/",
         icon: <ListChecksIcon />,
       },
       {
         title: "สถิติ",
-        path: "#/team-insights",
+        path: "/dashboard/insights",
         icon: <BarChart3Icon />,
       },
       {
@@ -62,11 +52,8 @@ export const navGroups: SidebarNavGroup[] = [
         title: "ตั้งค่า",
         icon: <SettingsIcon />,
         subItems: [
-          { title: "การแจ้งเตือน", path: "#/workspace/branding" },
-          { title: "Team & roles", path: "#/workspace/team" },
-          { title: "API keys", path: "#/workspace/api-keys" },
-          { title: "Webhooks", path: "#/workspace/webhooks" },
-          { title: "Billing", path: "#/workspace/billing" },
+          { title: "การแจ้งเตือน", path: "/dashboard/notification" },
+          { title: "API keys", path: "/dashboard/api-keys" },
         ],
       },
     ],
@@ -74,13 +61,13 @@ export const navGroups: SidebarNavGroup[] = [
 ];
 
 export const footerNavLinks: SidebarNavItem[] = [
+  // {
+  //   title: "Help Center",
+  //   path: "#/help",
+  //   icon: <HelpCircleIcon />,
+  // },
   {
-    title: "Help Center",
-    path: "#/help",
-    icon: <HelpCircleIcon />,
-  },
-  {
-    title: "System status",
+    title: "สถานะของระบบ",
     path: "#/status",
     icon: <ActivityIcon />,
   },

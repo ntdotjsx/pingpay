@@ -1,16 +1,28 @@
 import { AuthProvider } from "@/hooks/useAuth";
 import { DashboardGuard } from "@/components/dashboard/DashboardGuard";
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { DashboardContent } from "@/components/dashboard/DashboardContent";
+import { FriendsContent } from "@/components/dashboard/FriendsContent";
+import { ApiKeysContent } from "@/components/dashboard/ApiKeysContent";
+import { NotificationContent } from "@/components/dashboard/NotificationContent";
+import { InsightsContent } from "@/components/dashboard/InsightsContent";
 
 interface Props {
-  children?: React.ReactNode;
+  page?: "dashboard" | "friends" | "api-keys" | "notification" | "insights";
 }
 
-export function DashboardApp({ children }: Props) {
+export function DashboardApp({ page = "dashboard" }: Props) {
+  const content = {
+    dashboard: <DashboardContent />,
+    friends: <FriendsContent />,
+    "api-keys": <ApiKeysContent />,
+    notification: <NotificationContent />,
+    insights: <InsightsContent />,
+  }[page];
+
   return (
     <AuthProvider>
       <DashboardGuard>
-        {children ?? <DashboardSkeleton />}
+        {content}
       </DashboardGuard>
     </AuthProvider>
   );

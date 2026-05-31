@@ -73,38 +73,6 @@ export function NavUser() {
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <BellIcon />
-            Notifications
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <CommandIcon />
-            Keyboard shortcuts
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <LifeBuoyIcon />
-            Help center
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <GraduationCapIcon />
-            Agent training
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <CreditCardIcon />
-            Subscription
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
           <DropdownMenuItem
             className="w-full cursor-pointer"
             variant="destructive"

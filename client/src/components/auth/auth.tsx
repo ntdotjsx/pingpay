@@ -97,56 +97,6 @@ export function AuthPage() {
             </Button>
           </div>
 
-          <AuthDivider>or continue with email</AuthDivider>
-
-          {/* Email + Password login form */}
-          <form className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                Email address
-              </Label>
-              <InputGroup>
-                <InputGroupInput
-                  placeholder="your.email@example.com"
-                  type="email"
-                />
-                <InputGroupAddon align="inline-start">
-                  <AtSignIcon className="size-3.5 text-muted-foreground" />
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">
-                  Password
-                </Label>
-                <a
-                  href="#"
-                  className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4"
-                >
-                  Forgot password?
-                </a>
-              </div>
-              <Input type="password" placeholder="••••••••" />
-            </div>
-
-            <Button className="w-full" size="sm" type="button">
-              Sign In
-            </Button>
-          </form>
-
-          {/* Login line */}
-          <p className="text-center text-xs text-muted-foreground/70">
-            Don't have an account?{" "}
-            <a
-              href="#"
-              className="text-foreground/80 underline underline-offset-4 hover:text-primary"
-            >
-              Create one
-            </a>
-          </p>
-
           {/* Terms */}
           <p className="text-muted-foreground/60 text-xs leading-relaxed">
             By continuing, you agree to our{" "}

@@ -10,11 +10,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   site: "https://example.com",
 
-  integrations: [
-    mdx(),
-    sitemap(),
-    react(),
-  ],
+  integrations: [mdx(), sitemap(), react()],
 
   fonts: [
     {
@@ -43,5 +39,18 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      proxy: {
+        "/api": {
+          target: "http://localhost:8000",
+          changeOrigin: true,
+          secure: false,
+          cookieDomainRewrite: "localhost",
+          headers: {
+            Origin: "http://localhost:4321",
+          },
+        },
+      },
+    },
   },
 });
