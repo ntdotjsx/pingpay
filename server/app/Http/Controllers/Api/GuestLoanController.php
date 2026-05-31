@@ -50,6 +50,7 @@ class GuestLoanController extends Controller
                 'is_overdue'      => $loan->is_overdue,
                 'group_id'        => $loan->group_id,
                 'group_name'      => $loan->group?->name,
+                'borrower_id'     => $loan->borrower_id,
                 'borrower_name'   => $loan->borrower?->name,
             ]);
 

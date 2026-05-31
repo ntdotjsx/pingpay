@@ -111,6 +111,7 @@ export interface LenderLoanSummary {
   is_overdue: boolean;
   group_id: number | null;
   group_name: string | null;
+  borrower_id: number | null;
   borrower_name: string | null;
 }
 
@@ -156,6 +157,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: "เกิดข้อผิดพลาด" }));
+    // Laravel validation errors — รวม field errors ให้อ่านง่าย
+    if (err.errors) {
+      const firstError = Object.values(err.errors as Record<string, string[]>)[0];
+      throw new Error(Array.isArray(firstError) ? firstError[0] : err.message ?? `HTTP ${res.status}`);
+    }
     throw new Error(err.message ?? `HTTP ${res.status}`);
   }
 

@@ -42,28 +42,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Members — รายชื่อเพื่อนในกลุ่ม
     Route::prefix('members')->group(function () {
-        Route::get('/',      [UserController::class, 'members']);
-        Route::post('/',     [UserController::class, 'createMember']);
-        Route::get('{user}', [UserController::class, 'memberSummary']);
+        Route::get('/',        [UserController::class, 'members']);
+        Route::post('/',       [UserController::class, 'createMember']);
+        Route::get('{user}',   [UserController::class, 'memberSummary']);
+        Route::put('{user}',   [UserController::class, 'updateMember']);   // ← เพิ่ม
+        Route::delete('{user}', [UserController::class, 'deleteMember']);   // ← เพิ่ม
     });
 
     // Loans — รายการยืมเงิน
     Route::prefix('loans')->group(function () {
-        Route::get    ('/',               [UserController::class, 'loans']);
-        Route::post   ('/',               [UserController::class, 'createLoan']);
-        Route::get    ('{loan}',          [UserController::class, 'showLoan']);
-        Route::put    ('{loan}',          [UserController::class, 'updateLoan']);
-        Route::delete ('{loan}',          [UserController::class, 'deleteLoan']);
-        Route::post   ('{loan}/payments', [UserController::class, 'recordPayment']);
+        Route::get('/',               [UserController::class, 'loans']);
+        Route::post('/',               [UserController::class, 'createLoan']);
+        Route::get('{loan}',          [UserController::class, 'showLoan']);
+        Route::put('{loan}',          [UserController::class, 'updateLoan']);
+        Route::delete('{loan}',          [UserController::class, 'deleteLoan']);
+        Route::post('{loan}/payments', [UserController::class, 'recordPayment']);
 
         // Guest link management
-        Route::get  ('{loan}/guest-link',      [LoanController::class, 'guestLink']);
-        Route::post ('{loan}/regenerate-link', [LoanController::class, 'regenerateLink']);
+        Route::get('{loan}/guest-link',      [LoanController::class, 'guestLink']);
+        Route::post('{loan}/regenerate-link', [LoanController::class, 'regenerateLink']);
 
         // Payment confirmation
-        Route::get  ('{loan}/payments/pending',         [LoanController::class, 'pendingPayments']);
-        Route::post ('{loan}/payments/{payment}/confirm',[LoanController::class, 'confirmPayment']);
-        Route::post ('{loan}/payments/{payment}/reject', [LoanController::class, 'rejectPayment']);
+        Route::get('{loan}/payments/pending',         [LoanController::class, 'pendingPayments']);
+        Route::post('{loan}/payments/{payment}/confirm', [LoanController::class, 'confirmPayment']);
+        Route::post('{loan}/payments/{payment}/reject', [LoanController::class, 'rejectPayment']);
     });
 
     // รวม pending confirmations ทุก loan ของ lender คนนี้
@@ -71,11 +73,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Groups — กลุ่มทริป / งาน
     Route::prefix('groups')->group(function () {
-        Route::get    ('/',                     [GroupController::class, 'index']);
-        Route::post   ('/',                     [GroupController::class, 'store']);
-        Route::get    ('{group}',               [GroupController::class, 'show']);
-        Route::delete ('{group}',               [GroupController::class, 'destroy']);
-        Route::get    ('{group}/guest-links',   [GroupController::class, 'guestLinks']);
+        Route::get('/',                     [GroupController::class, 'index']);
+        Route::post('/',                     [GroupController::class, 'store']);
+        Route::get('{group}',               [GroupController::class, 'show']);
+        Route::delete('{group}',               [GroupController::class, 'destroy']);
+        Route::get('{group}/guest-links',   [GroupController::class, 'guestLinks']);
     });
 });
 
@@ -89,16 +91,16 @@ Route::get('lender/{line_id}', [GuestLoanController::class, 'byLineId']);
 //  Guest routes — ไม่ต้อง login, ใช้ guest_token จาก URL
 // ============================================================
 Route::prefix('guest/{guest_token}')
-     ->middleware(ValidGuestToken::class)
-     ->name('guest.')
-     ->group(function () {
+    ->middleware(ValidGuestToken::class)
+    ->name('guest.')
+    ->group(function () {
 
-         // ดูรายละเอียดหนี้ + ประวัติ
-         Route::get  ('loan', [GuestLoanController::class, 'show'])->name('loan.show');
+        // ดูรายละเอียดหนี้ + ประวัติ
+        Route::get('loan', [GuestLoanController::class, 'show'])->name('loan.show');
 
-         // แจ้งชำระ + แนบสลิป (multipart/form-data)
-         Route::post ('pay',  [GuestLoanController::class, 'pay'])->name('loan.pay');
-     });
+        // แจ้งชำระ + แนบสลิป (multipart/form-data)
+        Route::post('pay',  [GuestLoanController::class, 'pay'])->name('loan.pay');
+    });
 
 // ============================================================
 //  Posts (example resource — คงไว้)

@@ -27,28 +27,6 @@ export function AppSidebar() {
 				</SidebarMenuButton>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenuItem className="flex items-center gap-2">
-						<SidebarMenuButton
-							className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-							tooltip="Quick Create"
-						>
-							<PlusIcon
-							/>
-							<span>เพิ่มรายการใหม่</span>
-						</SidebarMenuButton>
-						<Button
-							aria-label="Search conversations"
-							className="size-8 group-data-[collapsible=icon]:opacity-0"
-							size="icon"
-							variant="outline"
-						>
-							<SearchIcon
-							/>
-							<span className="sr-only">Search conversations</span>
-						</Button>
-					</SidebarMenuItem>
-				</SidebarGroup>
 				{navGroups.map((group, index) => (
 					<NavGroup key={`sidebar-group-${index}`} {...group} />
 				))}

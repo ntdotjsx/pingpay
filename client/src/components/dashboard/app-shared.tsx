@@ -63,10 +63,7 @@ export const navGroups: SidebarNavGroup[] = [
         icon: <SettingsIcon />,
         subItems: [
           { title: "การแจ้งเตือน", path: "#/workspace/branding" },
-          { title: "Team & roles", path: "#/workspace/team" },
           { title: "API keys", path: "#/workspace/api-keys" },
-          { title: "Webhooks", path: "#/workspace/webhooks" },
-          { title: "Billing", path: "#/workspace/billing" },
         ],
       },
     ],
