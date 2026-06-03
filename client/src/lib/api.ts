@@ -17,8 +17,18 @@ export interface ApiLoan {
   loan_date: string;
   due_date: string | null;
   status: "active" | "settled" | "overdue";
-  lender?: { id: number; name: string; avatar?: string | null; line_id?: string | null };
-  borrower?: { id: number; name: string; avatar?: string | null; line_id?: string | null };
+  lender?: {
+    id: number;
+    name: string;
+    avatar?: string | null;
+    line_id?: string | null;
+  };
+  borrower?: {
+    id: number;
+    name: string;
+    avatar?: string | null;
+    line_id?: string | null;
+  };
   payments?: ApiPayment[];
   paid_amount?: number;
   paid_percentage?: number;
@@ -101,7 +111,49 @@ export interface ApiKeySettings {
     has_api_key: boolean;
     masked_api_key: string | null;
     branch_id: string | null;
+    promptpay: {
+      has_id: boolean;
+      id: string | null;
+      fallback: string | null;
+      recipient: string | null;
+    };
   };
+}
+
+// ============================================================
+//  Checkout (guest) — PromptPay + SlipOK
+// ============================================================
+
+export interface CheckoutInfo {
+  lender: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  } | null;
+  payment_capabilities: {
+    promptpay: boolean;
+    slipok: boolean;
+  };
+  can_pay_online: boolean;
+}
+
+export interface PromptPayQr {
+  recipient: string;
+  amount: number;
+  qr_data_uri: string;
+  format: string;
+  size: number;
+}
+
+export interface SlipVerifyResult {
+  success: boolean;
+  verified: boolean;
+  data: {
+    amount: number;
+    transRef?: string;
+    [key: string]: unknown;
+  } | null;
+  message: string;
 }
 
 export interface NotificationSettings {
@@ -193,7 +245,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(init?.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...init?.headers,
     },
     ...init,
@@ -203,8 +257,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({ message: "เกิดข้อผิดพลาด" }));
     // Laravel validation errors — รวม field errors ให้อ่านง่าย
     if (err.errors) {
-      const firstError = Object.values(err.errors as Record<string, string[]>)[0];
-      throw new Error(Array.isArray(firstError) ? firstError[0] : err.message ?? `HTTP ${res.status}`);
+      const firstError = Object.values(
+        err.errors as Record<string, string[]>,
+      )[0];
+      throw new Error(
+        Array.isArray(firstError)
+          ? firstError[0]
+          : (err.message ?? `HTTP ${res.status}`),
+      );
     }
     throw new Error(err.message ?? `HTTP ${res.status}`);
   }
@@ -223,9 +283,10 @@ export const api = {
 
   async getLoans(params?: { role?: "lender" | "borrower"; status?: string }) {
     const qs = new URLSearchParams(params as Record<string, string>).toString();
-    const data = await apiFetch<{ success: boolean; data: { data: ApiLoan[] } }>(
-      `/loans${qs ? "?" + qs : ""}`
-    );
+    const data = await apiFetch<{
+      success: boolean;
+      data: { data: ApiLoan[] };
+    }>(`/loans${qs ? "?" + qs : ""}`);
     return data.data.data;
   },
 
@@ -244,7 +305,9 @@ export const api = {
   },
 
   async getLoan(id: number) {
-    const data = await apiFetch<{ success: boolean; data: ApiLoan }>(`/loans/${id}`);
+    const data = await apiFetch<{ success: boolean; data: ApiLoan }>(
+      `/loans/${id}`,
+    );
     return data.data;
   },
 
@@ -252,10 +315,13 @@ export const api = {
     return apiFetch(`/loans/${id}`, { method: "DELETE" });
   },
 
-  async recordPayment(loanId: number, body: { amount: number; note?: string; paid_at?: string }) {
+  async recordPayment(
+    loanId: number,
+    body: { amount: number; note?: string; paid_at?: string },
+  ) {
     const data = await apiFetch<{ success: boolean; data: ApiLoan }>(
       `/loans/${loanId}/payments`,
-      { method: "POST", body: JSON.stringify(body) }
+      { method: "POST", body: JSON.stringify(body) },
     );
     return data.data;
   },
@@ -265,7 +331,9 @@ export const api = {
   },
 
   async confirmPayment(loanId: number, paymentId: number) {
-    return apiFetch(`/loans/${loanId}/payments/${paymentId}/confirm`, { method: "POST" });
+    return apiFetch(`/loans/${loanId}/payments/${paymentId}/confirm`, {
+      method: "POST",
+    });
   },
 
   async rejectPayment(loanId: number, paymentId: number, reason?: string) {
@@ -280,16 +348,22 @@ export const api = {
   },
 
   async regenerateLink(loanId: number) {
-    return apiFetch<{ guest_link: string }>(`/loans/${loanId}/regenerate-link`, {
-      method: "POST",
-    });
+    return apiFetch<{ guest_link: string }>(
+      `/loans/${loanId}/regenerate-link`,
+      {
+        method: "POST",
+      },
+    );
   },
 
   async remindLoan(loanId: number, message?: string) {
-    return apiFetch<{ success: boolean; message: string }>(`/loans/${loanId}/remind`, {
-      method: "POST",
-      body: JSON.stringify({ message }),
-    });
+    return apiFetch<{ success: boolean; message: string }>(
+      `/loans/${loanId}/remind`,
+      {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      },
+    );
   },
 
   async allPendingConfirmations() {
@@ -301,12 +375,16 @@ export const api = {
   // ============================================================
 
   async getDashboard() {
-    const data = await apiFetch<{ success: boolean; data: ApiDashboard }>("/dashboard");
+    const data = await apiFetch<{ success: boolean; data: ApiDashboard }>(
+      "/dashboard",
+    );
     return data.data;
   },
 
   async getApiKeys() {
-    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>("/dashboard/api-keys");
+    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>(
+      "/dashboard/api-keys",
+    );
     return data.data;
   },
 
@@ -317,20 +395,29 @@ export const api = {
     clear_line_bot_token?: boolean;
     clear_slipok_api_key?: boolean;
   }) {
-    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>("/dashboard/api-keys", {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+    const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>(
+      "/dashboard/api-keys",
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      },
+    );
     return data.data;
   },
 
   async getNotificationSettings() {
-    const data = await apiFetch<{ success: boolean; data: NotificationSettings }>("/dashboard/notification");
+    const data = await apiFetch<{
+      success: boolean;
+      data: NotificationSettings;
+    }>("/dashboard/notification");
     return data.data;
   },
 
   async updateNotificationSettings(body: NotificationSettings) {
-    const data = await apiFetch<{ success: boolean; data: NotificationSettings }>("/dashboard/notification", {
+    const data = await apiFetch<{
+      success: boolean;
+      data: NotificationSettings;
+    }>("/dashboard/notification", {
       method: "PUT",
       body: JSON.stringify(body),
     });
@@ -338,7 +425,9 @@ export const api = {
   },
 
   async getCreditorInsights() {
-    const data = await apiFetch<{ success: boolean; data: CreditorInsights }>("/dashboard/insights");
+    const data = await apiFetch<{ success: boolean; data: CreditorInsights }>(
+      "/dashboard/insights",
+    );
     return data.data;
   },
 
@@ -365,10 +454,10 @@ export const api = {
   },
 
   async createMember(body: { name: string; line_id?: string; phone?: string }) {
-    const data = await apiFetch<{ success: boolean; data: { id: number; name: string; line_id: string | null } }>(
-      "/members",
-      { method: "POST", body: JSON.stringify(body) }
-    );
+    const data = await apiFetch<{
+      success: boolean;
+      data: { id: number; name: string; line_id: string | null };
+    }>("/members", { method: "POST", body: JSON.stringify(body) });
     return data.data;
   },
 
@@ -377,7 +466,9 @@ export const api = {
   // ============================================================
 
   async getGroups() {
-    const data = await apiFetch<{ success: boolean; data: ApiGroup[] }>("/groups");
+    const data = await apiFetch<{ success: boolean; data: ApiGroup[] }>(
+      "/groups",
+    );
     return data.data;
   },
 
@@ -388,22 +479,28 @@ export const api = {
     due_date?: string;
     members: Array<{ user_id?: number; name: string }>;
   }) {
-    const data = await apiFetch<{ success: boolean; data: ApiGroup }>("/groups", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    const data = await apiFetch<{ success: boolean; data: ApiGroup }>(
+      "/groups",
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
     return data.data;
   },
 
   async getGroup(id: number) {
-    const data = await apiFetch<{ success: boolean; data: ApiGroup }>(`/groups/${id}`);
+    const data = await apiFetch<{ success: boolean; data: ApiGroup }>(
+      `/groups/${id}`,
+    );
     return data.data;
   },
 
   async getGroupGuestLinks(groupId: number) {
-    const data = await apiFetch<{ success: boolean; data: ApiGroupGuestLink[] }>(
-      `/groups/${groupId}/guest-links`
-    );
+    const data = await apiFetch<{
+      success: boolean;
+      data: ApiGroupGuestLink[];
+    }>(`/groups/${groupId}/guest-links`);
     return data.data;
   },
 
@@ -425,16 +522,64 @@ export const api = {
   },
 
   async getLenderByLineId(lineId: string) {
-    const res = await fetch(`${API_BASE}/api/lender/${encodeURIComponent(lineId)}`, {
-      headers: { Accept: "application/json" },
-    });
+    const res = await fetch(
+      `${API_BASE}/api/lender/${encodeURIComponent(lineId)}`,
+      {
+        headers: { Accept: "application/json" },
+      },
+    );
     if (!res.ok) throw new Error("ไม่พบเจ้าหนี้นี้");
     return res.json() as Promise<GuestLenderPage>;
+  },
+  // },
+  async getCheckoutInfo(token: string) {
+    const res = await fetch(`${API_BASE}/api/guest/${token}/checkout-info`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error("ไม่พบรายการหนี้นี้");
+    return (await res.json()) as CheckoutInfo;
+  },
+
+  async getPromptPayQr(token: string, amount: number) {
+    const res = await fetch(
+      `${API_BASE}/api/guest/${token}/promptpay-qr?amount=${encodeURIComponent(amount)}`,
+      { headers: { Accept: "application/json" } },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.message ?? "สร้าง QR ไม่สำเร็จ") as Error & {
+        requiresSetup?: boolean;
+      };
+      if (data.requires_setup) err.requiresSetup = true;
+      throw err;
+    }
+    return data as PromptPayQr;
+  },
+
+  async verifySlip(token: string, body: { slip: File; amount: number }) {
+    const form = new FormData();
+    form.append("slip", body.slip);
+    form.append("amount", String(body.amount));
+
+    const res = await fetch(`${API_BASE}/api/guest/${token}/verify-slip`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && res.status !== 200) {
+      const err = new Error(data.message ?? "ตรวจสอบสลิปไม่สำเร็จ") as Error & {
+        requiresSetup?: boolean;
+      };
+      if (data.requires_setup) err.requiresSetup = true;
+      throw err;
+    }
+    return data as SlipVerifyResult;
   },
 
   async guestPay(
     token: string,
-    body: { amount: number; note?: string; paid_at?: string; slip?: File }
+    body: { amount: number; note?: string; paid_at?: string; slip?: File },
   ) {
     const form = new FormData();
     form.append("amount", String(body.amount));

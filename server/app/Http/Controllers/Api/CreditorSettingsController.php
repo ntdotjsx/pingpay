@@ -40,6 +40,12 @@ class CreditorSettingsController extends Controller
                     'masked_api_key' => $this->maskSecret($user->slipok_api_key),
                     'branch_id' => $user->slipok_branch_id,
                 ],
+                'promptpay' => [
+                    'has_id'   => $user->hasPromptPayConfigured(),
+                    'id'       => $user->promptpay_id,
+                    'fallback' => $user->phone,
+                    'recipient' => $user->getPromptPayRecipient(),
+                ],
             ],
         ]);
     }
@@ -47,11 +53,13 @@ class CreditorSettingsController extends Controller
     public function updateApiKeys(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'line_bot_token' => 'nullable|string|min:20|max:500',
-            'slipok_api_key' => 'nullable|string|min:6|max:255',
-            'slipok_branch_id' => 'nullable|string|max:100',
+            'line_bot_token'    => 'nullable|string|min:20|max:500',
+            'slipok_api_key'    => 'nullable|string|min:6|max:255',
+            'slipok_branch_id'  => 'nullable|string|max:100',
+            'promptpay_id'      => 'nullable|string|min:10|max:15|regex:/^[0-9\- ]+$/',
             'clear_line_bot_token' => 'sometimes|boolean',
             'clear_slipok_api_key' => 'sometimes|boolean',
+            'clear_promptpay_id'   => 'sometimes|boolean',
         ]);
 
         $user = $request->user();
@@ -70,6 +78,14 @@ class CreditorSettingsController extends Controller
 
         if (array_key_exists('slipok_branch_id', $validated)) {
             $user->slipok_branch_id = $validated['slipok_branch_id'] ?: null;
+        }
+
+        if ($request->boolean('clear_promptpay_id')) {
+            $user->promptpay_id = null;
+        } elseif (array_key_exists('promptpay_id', $validated)) {
+            $user->promptpay_id = $validated['promptpay_id']
+                ? preg_replace('/\D+/', '', $validated['promptpay_id'])
+                : null;
         }
 
         $user->save();

@@ -104,6 +104,15 @@ Route::prefix('guest/{guest_token}')
         // ดูรายละเอียดหนี้ + ประวัติ
         Route::get('loan', [GuestLoanController::class, 'show'])->name('loan.show');
 
+        // ดูข้อมูล lender + payment_capabilities (PromptPay / SlipOK)
+        Route::get('checkout-info', [GuestLoanController::class, 'checkoutInfo'])->name('checkout.info');
+
+        // Generate PromptPay QR Code (?amount=xxx)
+        Route::get('promptpay-qr', [GuestLoanController::class, 'promptpayQr'])->name('promptpay.qr');
+
+        // ตรวจสอบสลิปด้วย SlipOK (multipart/form-data: slip + amount)
+        Route::post('verify-slip', [GuestLoanController::class, 'verifySlip'])->name('slip.verify');
+
         // แจ้งชำระ + แนบสลิป (multipart/form-data)
         Route::post('pay',  [GuestLoanController::class, 'pay'])->name('loan.pay');
     });

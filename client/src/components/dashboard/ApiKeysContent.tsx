@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Bot, CheckCircle2, KeyRound, ReceiptText, ShieldCheck, Trash2 } from "lucide-react";
+import { Bot, CheckCircle2, KeyRound, QrCode, ReceiptText, ShieldCheck, Trash2 } from "lucide-react";
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -27,6 +27,8 @@ export function ApiKeysContent() {
   const [settings, setSettings] = useState<ApiKeySettings | null>(null);
   const [lineToken, setLineToken] = useState("");
   const [slipokKey, setSlipokKey] = useState("");
+  const [promptpayId, setPromptpayId] = useState("");
+
   const [branchId, setBranchId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,7 @@ export function ApiKeysContent() {
       .then((data) => {
         setSettings(data);
         setBranchId(data.slipok.branch_id ?? "");
+        setPromptpayId(data.promptpay.id ?? "");
       })
       .catch(() => toast.error("โหลด API keys ไม่สำเร็จ"))
       .finally(() => setLoading(false));
@@ -49,6 +52,7 @@ export function ApiKeysContent() {
         ...(lineToken.trim() ? { line_bot_token: lineToken.trim() } : {}),
         ...(slipokKey.trim() ? { slipok_api_key: slipokKey.trim() } : {}),
         slipok_branch_id: branchId.trim(),
+        promptpay_id: promptpayId.trim(),
       });
       setSettings(next);
       setLineToken("");

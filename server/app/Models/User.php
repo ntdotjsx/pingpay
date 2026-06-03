@@ -22,6 +22,7 @@ use Laravel\Sanctum\HasApiTokens;
     'line_bot_token',
     'slipok_api_key',
     'slipok_branch_id',
+    'promptpay_id',
     'notification_settings',
 ])]
 #[Hidden(['password', 'remember_token', 'line_bot_token', 'slipok_api_key'])]
@@ -37,6 +38,36 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'notification_settings' => 'array',
         ];
+    }
+
+    // ============================================================
+    //  PromptPay helpers
+    // ============================================================
+
+    /**
+     * ตรวจสอบว่าผู้ใช้ตั้งค่า PromptPay ID แล้วหรือยัง
+     * ใช้สำหรับตัดสินใจว่าจะแสดง QR Code บนหน้า checkout หรือไม่
+     */
+    public function hasPromptPayConfigured(): bool
+    {
+        return filled($this->promptpay_id) || filled($this->phone);
+    }
+
+    /**
+     * คืนค่า PromptPay ID ที่ใช้ generate QR
+     * priority: promptpay_id > phone
+     */
+    public function getPromptPayRecipient(): ?string
+    {
+        if (filled($this->promptpay_id)) {
+            return preg_replace('/\D+/', '', $this->promptpay_id);
+        }
+
+        if (filled($this->phone)) {
+            return preg_replace('/\D+/', '', $this->phone);
+        }
+
+        return null;
     }
 
     // ============================================================

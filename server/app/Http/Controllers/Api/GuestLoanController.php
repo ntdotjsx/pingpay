@@ -6,8 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Models\User;
+use App\Services\PromptPayService;
+use Farzai\PromptPay\Exceptions\InvalidAmountException;
+use Farzai\PromptPay\Exceptions\InvalidRecipientException;
+use Farzai\PromptPay\Exceptions\PromptPayException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class GuestLoanController extends Controller
@@ -154,5 +159,183 @@ class GuestLoanController extends Controller
             'message' => 'แจ้งชำระสำเร็จ รอเจ้าหนี้ยืนยัน',
             'payment' => $payment->load('proofs'),
         ], 201);
+    }
+
+    // ============================================================
+    //  GET /api/guest/{guest_token}/checkout-info
+    //  ดึงข้อมูล lender + flag ว่าพร้อมรับชำระผ่าน PromptPay + SlipOK หรือไม่
+    //  Frontend ใช้ตัดสินใจว่าจะแสดง QR / ปุ่มแนบสลิป / verify slip อัตโนมัติ
+    // ============================================================
+
+    public function checkoutInfo(Request $request): JsonResponse
+    {
+        /** @var Loan $loan */
+        $loan = $request->attributes->get('guest_loan');
+        $loan->loadMissing('lender:id,name,avatar,promptpay_id,phone,slipok_api_key,slipok_branch_id');
+
+        $lender = $loan->lender;
+
+        return response()->json([
+            'lender' => [
+                'id'     => $lender?->id,
+                'name'   => $lender?->name,
+                'avatar' => $lender?->avatar,
+            ],
+            'payment_capabilities' => [
+                'promptpay' => $lender ? $lender->hasPromptPayConfigured() : false,
+                'slipok'    => $lender ? filled($lender->slipok_api_key) : false,
+            ],
+            'can_pay_online' => $lender
+                ? ($lender->hasPromptPayConfigured() || filled($lender->slipok_api_key))
+                : false,
+        ]);
+    }
+
+    // ============================================================
+    //  GET /api/guest/{guest_token}/promptpay-qr
+    //  Generate QR Code สำหรับชำระเงิน
+    //  Query: ?amount=xxx (required)
+    //  Response 422 + requires_setup:true ถ้า lender ยังไม่ตั้งค่า promptpay
+    // ============================================================
+
+    public function promptpayQr(Request $request, PromptPayService $promptPay): JsonResponse
+    {
+        /** @var Loan $loan */
+        $loan = $request->attributes->get('guest_loan');
+
+        if ($loan->status === Loan::STATUS_SETTLED) {
+            return response()->json(['message' => 'หนี้รายการนี้ชำระครบแล้ว'], 422);
+        }
+
+        $validated = $request->validate([
+            'amount' => "required|numeric|min:1|max:{$loan->remaining_amount}",
+        ]);
+
+        $loan->loadMissing('lender:id,name,promptpay_id,phone');
+
+        if (! $loan->lender || ! $loan->lender->hasPromptPayConfigured()) {
+            return response()->json([
+                'message' => 'เจ้าหนี้ยังไม่ได้ตั้งค่า PromptPay กรุณาแจ้งเจ้าหนี้ให้ตั้งค่าก่อนชำระเงิน',
+                'requires_setup' => true,
+            ], 422);
+        }
+
+        try {
+            $qr = $promptPay->generateForLender($loan->lender, (float) $validated['amount']);
+        } catch (InvalidRecipientException) {
+            return response()->json([
+                'message' => 'PromptPay ID ของเจ้าหนี้ไม่ถูกต้อง กรุณาติดต่อเจ้าหนี้',
+                'requires_setup' => true,
+            ], 422);
+        } catch (InvalidAmountException) {
+            return response()->json(['message' => 'จำนวนเงินไม่ถูกต้อง'], 422);
+        } catch (PromptPayException $e) {
+            Log::error('PromptPay QR generation failed', [
+                'loan_id'   => $loan->id,
+                'lender_id' => $loan->lender_id,
+                'error'     => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'ไม่สามารถสร้าง QR Code ได้ในขณะนี้'], 500);
+        }
+
+        if (! $qr) {
+            return response()->json([
+                'message' => 'เจ้าหนี้ยังไม่ได้ตั้งค่า PromptPay',
+                'requires_setup' => true,
+            ], 422);
+        }
+
+        return response()->json([
+            'recipient'   => $qr['recipient'],
+            'amount'      => $qr['amount'],
+            'qr_data_uri' => $qr['qr_data_uri'],
+            'format'      => $qr['format'],
+            'size'        => $qr['size'],
+        ]);
+    }
+
+    // ============================================================
+    //  POST /api/guest/{guest_token}/verify-slip
+    //  ตรวจสอบสลิปด้วย SlipOK (ถ้า lender ตั้งค่าไว้)
+    //  Body: multipart/form-data พร้อม slip (image) + amount
+    //  ถ้า lender ไม่ได้ตั้ง SlipOK → 422 พร้อม flag requires_setup
+    // ============================================================
+
+    public function verifySlip(Request $request): JsonResponse
+    {
+        /** @var Loan $loan */
+        $loan = $request->attributes->get('guest_loan');
+        $loan->loadMissing('lender:id,slipok_api_key,slipok_branch_id');
+
+        if ($loan->status === Loan::STATUS_SETTLED) {
+            return response()->json(['message' => 'หนี้รายการนี้ชำระครบแล้ว'], 422);
+        }
+
+        if (! $loan->lender || ! filled($loan->lender->slipok_api_key)) {
+            return response()->json([
+                'message' => 'เจ้าหนี้ยังไม่ได้ตั้งค่า SlipOK API key กรุณาแจ้งเจ้าหนี้ให้ตั้งค่าก่อน',
+                'requires_setup' => true,
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'slip'   => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'amount' => "required|numeric|min:1|max:{$loan->remaining_amount}",
+        ]);
+
+        $apiKey   = $loan->lender->slipok_api_key;
+        $branchId = $loan->lender->slipok_branch_id;
+        $file     = $request->file('slip');
+        $amount   = (float) $validated['amount'];
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)
+                ->withHeaders([
+                    'x-authorization' => $apiKey,
+                    'Accept'          => 'application/json',
+                ])
+                ->attach(
+                    'files',
+                    file_get_contents($file->getRealPath()),
+                    $file->getClientOriginalName()
+                )
+                ->post('https://api.slipok.com/api/line/apikey/' . ($branchId ?: '0'), [
+                    'amount' => $amount,
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('SlipOK verify failed', [
+                    'loan_id' => $loan->id,
+                    'status'  => $response->status(),
+                    'body'    => $response->json(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถตรวจสอบสลิปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+                ], 502);
+            }
+
+            $data = $response->json();
+            $slipAmount = isset($data['data']['amount']) ? (float) $data['data']['amount'] : 0;
+            $isValid = ($data['success'] ?? false) === true && $slipAmount >= $amount;
+
+            return response()->json([
+                'success'  => $isValid,
+                'verified' => $isValid,
+                'data'     => $data['data'] ?? null,
+                'message'  => $isValid
+                    ? 'ตรวจสอบสลิปสำเร็จ'
+                    : 'สลิปไม่ถูกต้องหรือยอดเงินไม่ตรงกัน',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('SlipOK request error', [
+                'loan_id' => $loan->id,
+                'error'   => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการตรวจสอบสลิป',
+            ], 500);
+        }
     }
 }
