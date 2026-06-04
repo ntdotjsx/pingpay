@@ -138,16 +138,17 @@ class GuestLoanController extends Controller
             'confirmation_status'  => LoanPayment::STATUS_PENDING,
         ]);
 
-        // อัปโหลดสลิปถ้ามี
+        // อัปโหลดสลิปถ้ามี (เก็บเป็น base64 ตามที่ผู้ใช้ต้องการ)
         if ($request->hasFile('slip')) {
             $file = $request->file('slip');
-            $path = $file->store("proofs/payments/{$payment->id}", 'public');
+            $fileContent = file_get_contents($file->getRealPath());
+            $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileContent);
 
-            $payment->update(['proof_url' => Storage::url($path)]);
+            $payment->update(['proof_url' => $base64]);
 
             // บันทึก LoanProof (polymorphic)
             $payment->proofs()->create([
-                'file_path'   => $path,
+                'file_path'   => 'base64',
                 'file_name'   => $file->getClientOriginalName(),
                 'mime_type'   => $file->getMimeType(),
                 'file_size'   => $file->getSize(),
@@ -171,7 +172,7 @@ class GuestLoanController extends Controller
     {
         /** @var Loan $loan */
         $loan = $request->attributes->get('guest_loan');
-        $loan->loadMissing('lender:id,name,avatar,promptpay_id,phone,slipok_api_key,slipok_branch_id');
+        $loan->load('lender:id,name,avatar,promptpay_id,phone,slipok_api_key,slipok_branch_id');
 
         $lender = $loan->lender;
 
@@ -180,6 +181,7 @@ class GuestLoanController extends Controller
                 'id'     => $lender?->id,
                 'name'   => $lender?->name,
                 'avatar' => $lender?->avatar,
+                'promptpay_target' => $lender?->getPromptPayRecipient(),
             ],
             'payment_capabilities' => [
                 'promptpay' => $lender ? $lender->hasPromptPayConfigured() : false,
@@ -211,7 +213,7 @@ class GuestLoanController extends Controller
             'amount' => "required|numeric|min:1|max:{$loan->remaining_amount}",
         ]);
 
-        $loan->loadMissing('lender:id,name,promptpay_id,phone');
+        $loan->load('lender:id,name,promptpay_id,phone');
 
         if (! $loan->lender || ! $loan->lender->hasPromptPayConfigured()) {
             return response()->json([
@@ -265,7 +267,7 @@ class GuestLoanController extends Controller
     {
         /** @var Loan $loan */
         $loan = $request->attributes->get('guest_loan');
-        $loan->loadMissing('lender:id,slipok_api_key,slipok_branch_id');
+        $loan->load('lender:id,slipok_api_key,slipok_branch_id');
 
         if ($loan->status === Loan::STATUS_SETTLED) {
             return response()->json(['message' => 'หนี้รายการนี้ชำระครบแล้ว'], 422);
@@ -290,6 +292,7 @@ class GuestLoanController extends Controller
 
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(30)
+                ->withoutVerifying()
                 ->withHeaders([
                     'x-authorization' => $apiKey,
                     'Accept'          => 'application/json',

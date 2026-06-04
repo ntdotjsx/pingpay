@@ -19,6 +19,7 @@ class ValidGuestToken
         $token = $request->route('guest_token');
 
         $loan = Loan::where('guest_token', $token)
+                    ->orWhere('guest_token', 'like', $token . '%')
                     ->with(['lender:id,name', 'borrower:id,name,line_id'])
                     ->first();
 

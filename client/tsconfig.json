@@ -8,6 +8,7 @@
     "dist"
   ],
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "strictNullChecks": true,
     "baseUrl": ".",
     "paths": {

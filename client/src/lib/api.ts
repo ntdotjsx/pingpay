@@ -111,12 +111,12 @@ export interface ApiKeySettings {
     has_api_key: boolean;
     masked_api_key: string | null;
     branch_id: string | null;
-    promptpay: {
-      has_id: boolean;
-      id: string | null;
-      fallback: string | null;
-      recipient: string | null;
-    };
+  };
+  promptpay: {
+    has_id: boolean;
+    id: string | null;
+    fallback: string | null;
+    recipient: string | null;
   };
 }
 
@@ -129,6 +129,7 @@ export interface CheckoutInfo {
     id: number;
     name: string;
     avatar: string | null;
+    promptpay_target?: string | null;
   } | null;
   payment_capabilities: {
     promptpay: boolean;
@@ -392,8 +393,10 @@ export const api = {
     line_bot_token?: string;
     slipok_api_key?: string;
     slipok_branch_id?: string;
+    promptpay_id?: string;
     clear_line_bot_token?: boolean;
     clear_slipok_api_key?: boolean;
+    clear_promptpay_id?: boolean;
   }) {
     const data = await apiFetch<{ success: boolean; data: ApiKeySettings }>(
       "/dashboard/api-keys",
