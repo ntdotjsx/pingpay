@@ -58,5 +58,6 @@ steps:
         - cd /var/www/pingpay
         - cp /home/ntdotjsx/.env.pingpay /var/www/pingpay/.env
         - docker compose pull
-        - docker compose up -d
+        - docker compose up -d --force-recreate
+        - docker compose exec backend php artisan optimize:clear
         - docker compose exec backend php artisan migrate --force
