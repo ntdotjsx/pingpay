@@ -1,7 +1,7 @@
 // lib/debtStore.ts — types + helpers ที่ DebtApp ใช้
 // mock data ถูกลบออกแล้ว — ข้อมูลจริงมาจาก API (api.ts)
 
-import type { ApiLoan, ApiGroup } from "@/lib/api";
+import type { ApiLoan, ApiGroup, ApiGroupGuestLink } from "@/lib/api";
 
 export interface Debtor {
   id: number;
@@ -12,6 +12,7 @@ export interface Debtor {
   colorIndex: number;
   groupId: number | null;
   loanId: number;        // ← loan.id จริงจาก backend (ใช้ confirm/reject payment)
+  avatar?: string | null;
 }
 
 export interface Group {
@@ -53,6 +54,7 @@ export function loanToDebtor(loan: ApiLoan, myUserId: number, index: number): De
     paid,
     colorIndex: index % AVATAR_COLORS.length,
     groupId: loan.group_id,
+    avatar: borrower?.avatar || null,
   };
 }
 

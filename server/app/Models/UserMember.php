@@ -9,5 +9,7 @@ class UserMember extends Model
     protected $fillable = [
         'owner_id',
         'member_id',
+        'approval_token',
+        'status',
     ];
 }

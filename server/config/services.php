@@ -39,5 +39,7 @@ return [
         'client_id'     => env('LINE_CLIENT_ID'),
         'client_secret' => env('LINE_CLIENT_SECRET'),
         'redirect'      => env('LINE_REDIRECT_URI'),
+        'bot_token'     => env('LINE_BOT_TOKEN'),
+        'bot_basic_id'  => env('LINE_BOT_BASIC_ID'),
     ],
 ];

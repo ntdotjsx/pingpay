@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\GuestLoanController;
 use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\LineWebhookController;
 use App\Http\Middleware\ValidGuestToken;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +21,12 @@ use Illuminate\Support\Facades\Route;
 //  Auth — LINE OAuth (ไม่ต้อง login)
 // ============================================================
 Route::get('/auth/line',          [AuthController::class, 'redirectToLine']);
+Route::get('/auth/line/bind',     [AuthController::class, 'redirectToLineForBind']);
+Route::get('/auth/line/approve-friend', [AuthController::class, 'redirectToLineForApproveFriend']);
+Route::get('/approve-friend/{token}/info', [AuthController::class, 'getApproveFriendInfo']);
 Route::get('/auth/line/callback', [AuthController::class, 'handleLineCallback']);
+Route::post('/webhook/line', [LineWebhookController::class, 'handleCentral']);
+
 
 // ============================================================
 //  Protected routes (auth:sanctum)
@@ -37,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('dashboard/api-keys', [CreditorSettingsController::class, 'updateApiKeys']);
     Route::get('dashboard/notification', [CreditorSettingsController::class, 'notifications']);
     Route::put('dashboard/notification', [CreditorSettingsController::class, 'updateNotifications']);
+    Route::post('dashboard/notification/test', [CreditorSettingsController::class, 'testNotification']);
 
     // Profile & Account
     Route::prefix('user')->group(function () {
@@ -76,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // รวม pending confirmations ทุก loan ของ lender คนนี้
     Route::get('pending-confirmations', [LoanController::class, 'allPendingConfirmations']);
+    Route::get('slip-payments', [LoanController::class, 'slipPayments']);
 
     // Groups — กลุ่มทริป / งาน
     Route::prefix('groups')->group(function () {
@@ -103,6 +111,18 @@ Route::prefix('guest/{guest_token}')
 
         // ดูรายละเอียดหนี้ + ประวัติ
         Route::get('loan', [GuestLoanController::class, 'show'])->name('loan.show');
+
+        // ดูข้อมูล lender + payment_capabilities (PromptPay / SlipOK)
+        Route::get('checkout-info', [GuestLoanController::class, 'checkoutInfo'])->name('checkout.info');
+
+        // Generate PromptPay QR Code (?amount=xxx)
+        Route::get('promptpay-qr', [GuestLoanController::class, 'promptpayQr'])->name('promptpay.qr');
+
+        // ตรวจสอบสลิปด้วย SlipOK (multipart/form-data: slip + amount)
+        Route::post('verify-slip', [GuestLoanController::class, 'verifySlip'])->name('slip.verify');
+
+        // อนุมัติรายการหนี้
+        Route::post('approve', [GuestLoanController::class, 'approve'])->name('loan.approve');
 
         // แจ้งชำระ + แนบสลิป (multipart/form-data)
         Route::post('pay',  [GuestLoanController::class, 'pay'])->name('loan.pay');

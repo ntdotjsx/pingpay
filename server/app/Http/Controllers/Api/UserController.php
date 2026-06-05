@@ -151,8 +151,11 @@ class UserController extends Controller
     {
         $search = $request->query('search');
 
-        $memberIds = UserMember::where('owner_id', Auth::id())
-            ->pluck('member_id');
+        $userMembers = UserMember::where('owner_id', Auth::id())
+            ->get()
+            ->keyBy('member_id');
+
+        $memberIds = $userMembers->keys();
 
         $members = User::whereIn('id', $memberIds)
             ->when($search, function ($q) use ($search) {
@@ -163,7 +166,7 @@ class UserController extends Controller
                 });
             })
             ->get()
-            ->map(function (User $user) {
+            ->map(function (User $user) use ($userMembers) {
 
                 $weAreCreditor = Loan::where('lender_id', Auth::id())
                     ->where('borrower_id', $user->id)
@@ -175,12 +178,20 @@ class UserController extends Controller
                     ->where('status', '!=', 'settled')
                     ->sum('remaining_amount');
 
+                $userMember = $userMembers->get($user->id);
+                $status = $userMember ? $userMember->status : 'approved';
+                $approvalToken = $userMember ? $userMember->approval_token : null;
+                $approvalLink = $approvalToken ? (config('app.frontend_url', 'http://localhost:4321') . '/approve-friend/' . $approvalToken) : null;
+
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'line_id' => $user->line_id,
+                    'avatar' => $user->avatar,
+                    'approval_status' => $status,
+                    'approval_link' => $approvalLink,
                     'we_are_creditor' => (float) $weAreCreditor,
                     'we_are_debtor' => (float) $weAreDebtor,
                     'active_loans_count' => (int) (
@@ -212,14 +223,23 @@ class UserController extends Controller
             'phone' => $validated['phone'] ?? null,
         ]);
 
+        $approvalToken = \Illuminate\Support\Str::random(32);
+
         UserMember::create([
             'owner_id' => Auth::id(),
             'member_id' => $user->id,
+            'approval_token' => $approvalToken,
+            'status' => 'pending',
         ]);
+
+        $approvalLink = config('app.frontend_url', 'http://localhost:4321') . '/approve-friend/' . $approvalToken;
 
         return response()->json([
             'success' => true,
-            'data' => $user,
+            'data' => array_merge($user->toArray(), [
+                'approval_status' => 'pending',
+                'approval_link' => $approvalLink,
+            ]),
         ], 201);
     }
 
@@ -377,8 +397,22 @@ class UserController extends Controller
             'description' => 'nullable|string|max:500',
             'due_date' => 'nullable|date',
             'loan_date' => 'nullable|date',
+            'proof_url' => 'required|string', // แนบหลักฐานเป็น base64 string
         ]);
 
+        // 1. ตรวจสอบสถานะการเชื่อมต่อ LINE ของเพื่อนคนนี้
+        $friendMember = UserMember::where('owner_id', Auth::id())
+            ->where('member_id', $validated['borrower_id'])
+            ->first();
+
+        if (!$friendMember || $friendMember->status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'เพื่อนคนนี้ยังไม่ได้อนุมัติการเชื่อมต่อ LINE ไม่สามารถเพิ่มรายการยืมเงินได้',
+            ], 422);
+        }
+
+        // 2. สร้างรายการหนี้ โดยเริ่มเป็นสถานะ pending_approval
         $loan = Loan::create([
             'lender_id' => Auth::id(),
             'borrower_id' => $validated['borrower_id'],
@@ -387,8 +421,30 @@ class UserController extends Controller
             'description' => $validated['description'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'loan_date' => $validated['loan_date'] ?? now()->toDateString(),
-            'status' => Loan::STATUS_ACTIVE,
+            'status' => Loan::STATUS_PENDING_APPROVAL,
+            'proof_url' => $validated['proof_url'],
         ]);
+
+        // 3. บันทึกหลักฐาน polymorphic
+        $mimeType = 'image/png';
+        if (preg_match('/^data:([^;]+);base64,/', $validated['proof_url'], $matches)) {
+            $mimeType = $matches[1];
+        }
+
+        $loan->proofs()->create([
+            'file_path'   => 'base64',
+            'file_name'   => 'loan_evidence',
+            'mime_type'   => $mimeType,
+            'file_size'   => strlen($validated['proof_url']),
+            'uploaded_by' => Auth::id(),
+        ]);
+
+        // 4. ส่งข้อความแจ้งเตือนหาลูกหนี้ทาง LINE
+        try {
+            app(\App\Services\LineNotificationService::class)->notifyBorrowerNewLoanPending($loan);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Line notification for new loan failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

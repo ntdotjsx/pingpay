@@ -38,6 +38,95 @@ class AuthController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // STEP 1.5 : คืน LINE Login URL สำหรับการเชื่อมต่อบัญชีของลูกหนี้ (Guest)
+    // GET /api/auth/line/bind
+    // -------------------------------------------------------------------------
+    public function redirectToLineForBind(Request $request)
+    {
+        $guestToken = $request->query('guest_token');
+        if (!$guestToken) {
+            return response()->json(['message' => 'Missing guest_token.'], 422);
+        }
+
+        // Validate that loan exists
+        $loan = \App\Models\Loan::where('guest_token', $guestToken)->first();
+        if (!$loan) {
+            return response()->json(['message' => 'Invalid guest_token.'], 404);
+        }
+
+        $state = hash('sha256', Str::random(40));
+        Cache::put("line_bind_state_{$state}", $guestToken, now()->addMinutes(10));
+
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id'     => config('services.line.client_id'),
+            'redirect_uri'  => config('services.line.redirect'),
+            'scope'         => 'profile openid email',
+            'state'         => $state,
+        ]);
+
+        return response()->json([
+            'url' => self::AUTH_URL . '?' . $query,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // STEP 1.6 : คืน LINE Login URL สำหรับการอนุมัติเพิ่มเพื่อน (Approve Friend)
+    // GET /api/auth/line/approve-friend
+    // -------------------------------------------------------------------------
+    public function redirectToLineForApproveFriend(Request $request)
+    {
+        $token = $request->query('token');
+        if (!$token) {
+            return response()->json(['message' => 'Missing approval token.'], 422);
+        }
+
+        $friendMember = \App\Models\UserMember::where('approval_token', $token)->first();
+        if (!$friendMember) {
+            return response()->json(['message' => 'Invalid approval token.'], 404);
+        }
+
+        $state = hash('sha256', Str::random(40));
+        Cache::put("line_approve_friend_{$state}", $token, now()->addMinutes(10));
+
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id'     => config('services.line.client_id'),
+            'redirect_uri'  => config('services.line.redirect'),
+            'scope'         => 'profile openid email',
+            'state'         => $state,
+        ]);
+
+        return response()->json([
+            'url' => self::AUTH_URL . '?' . $query,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    //ดึงข้อมูลสำหรับการอนุมัติเป็นเพื่อน
+    // GET /api/approve-friend/{token}/info
+    // -------------------------------------------------------------------------
+    public function getApproveFriendInfo(string $token)
+    {
+        $friendMember = \App\Models\UserMember::where('approval_token', $token)->first();
+        if (!$friendMember) {
+            return response()->json(['success' => false, 'message' => 'Invalid approval token.'], 404);
+        }
+
+        $owner = \App\Models\User::find($friendMember->owner_id);
+        $member = \App\Models\User::find($friendMember->member_id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'owner_name' => $owner ? $owner->name : 'Unknown',
+                'member_name' => $member ? $member->name : 'Unknown',
+                'status' => $friendMember->status,
+            ],
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
     // STEP 2 : LINE redirect กลับมาพร้อม ?code=xxx&state=xxx
     // GET /api/auth/line/callback
     // -------------------------------------------------------------------------
@@ -47,7 +136,22 @@ class AuthController extends Controller
         $state = $request->query('state');
 
         // --- ตรวจ state ---
-        if (!$code || !$state || !Cache::pull("line_state_{$state}")) {
+        if (!$code || !$state) {
+            return response()->json(['message' => 'Invalid state or missing code.'], 422);
+        }
+
+        $isBind = false;
+        $isApproveFriend = false;
+        $guestToken = null;
+        $approveFriendToken = null;
+
+        if (Cache::has("line_bind_state_{$state}")) {
+            $guestToken = Cache::pull("line_bind_state_{$state}");
+            $isBind = true;
+        } elseif (Cache::has("line_approve_friend_{$state}")) {
+            $approveFriendToken = Cache::pull("line_approve_friend_{$state}");
+            $isApproveFriend = true;
+        } elseif (!Cache::pull("line_state_{$state}")) {
             return response()->json(['message' => 'Invalid state or missing code.'], 422);
         }
 
@@ -69,6 +173,63 @@ class AuthController extends Controller
         // --- decode id_token เพื่อดึง profile ---
         $profile = $this->parseIdToken($token);
 
+        if (empty($profile->sub)) {
+            return response()->json(['message' => 'Failed to retrieve profile sub from LINE.'], 500);
+        }
+
+        $frontendUrl = config('app.frontend_url', 'http://localhost:4321');
+
+        if ($isApproveFriend) {
+            $friendMember = \App\Models\UserMember::where('approval_token', $approveFriendToken)->first();
+            if ($friendMember) {
+                $manualUser = \App\Models\User::find($friendMember->member_id);
+                $existingUser = \App\Models\User::where('line_id', $profile->sub)->first();
+
+                if ($existingUser) {
+                    // Point the friendship relation to the existing real user
+                    $friendMember->member_id = $existingUser->id;
+                    $friendMember->status = 'approved';
+                    $friendMember->save();
+
+                    // Delete the temporary manual user if it was a manual account
+                    if ($manualUser && str_starts_with($manualUser->email ?? '', 'manual_')) {
+                        $manualUser->delete();
+                    }
+                } else {
+                    // Update manual user with line_id and avatar
+                    if ($manualUser) {
+                        $manualUser->line_id = $profile->sub;
+                        if ($profile->picture ?? null) {
+                            $manualUser->avatar = $profile->picture;
+                        }
+                        $manualUser->save();
+                    }
+                    $friendMember->status = 'approved';
+                    $friendMember->save();
+                }
+            }
+
+            return redirect("{$frontendUrl}/approve-friend/{$approveFriendToken}?success=true");
+        }
+
+        if ($isBind) {
+            // Find the loan and update borrower's line_id
+            $loan = \App\Models\Loan::where('guest_token', $guestToken)->first();
+            if ($loan && $loan->borrower) {
+                $borrower = $loan->borrower;
+                $borrower->line_id = $profile->sub;
+                
+                // If borrower has default auto-generated manual email, let's also update avatar if they have one
+                if ($profile->picture ?? null) {
+                    $borrower->avatar = $profile->picture;
+                }
+                $borrower->save();
+            }
+
+            return redirect("{$frontendUrl}/checkout/{$guestToken}?bind_success=true");
+        }
+
+        // --- normal login flow ---
         // --- หา user หรือสร้างใหม่ ---
         $user = User::updateOrCreate(
             ['line_id' => $profile->sub],
@@ -85,8 +246,6 @@ class AuthController extends Controller
         $accessToken = $user->createToken('line-login')->plainTextToken;
 
         // --- redirect กลับ frontend พร้อม HttpOnly Cookie ---
-        $frontendUrl = config('app.frontend_url', 'http://localhost:4321');
-
         return redirect("{$frontendUrl}/dashboard")
             ->cookie(
                 'access_token',          // name

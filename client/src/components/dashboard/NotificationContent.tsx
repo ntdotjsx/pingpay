@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { api, type NotificationSettings } from "@/lib/api";
+import { getCachedUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +82,28 @@ export function NotificationContent() {
     }
   };
 
+  const [testing, setTesting] = useState(false);
+  const [testLineId, setTestLineId] = useState(() => {
+    const user = getCachedUser();
+    return user?.line_id ?? "";
+  });
+
+  const handleTest = async () => {
+    if (!testLineId.trim()) {
+      toast.error("กรุณาระบุ LINE ID ที่ต้องการส่งข้อความทดสอบ");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await api.testNotification(testLineId.trim());
+      toast.success(res.message);
+    } catch (e: any) {
+      toast.error(e.message ?? "ส่งข้อความทดสอบล้มเหลว");
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (loading || !settings) {
     return (
       <div className="space-y-3 p-1">
@@ -99,9 +122,11 @@ export function NotificationContent() {
           <h2 className="text-base font-semibold text-foreground">การแจ้งเตือน</h2>
           <p className="text-xs text-muted-foreground">ตั้งค่าการแจ้งเตือนสำหรับงานเจ้าหนี้</p>
         </div>
-        <Button onClick={save} disabled={saving} size="sm" className="h-8">
-          {saving ? "กำลังบันทึก..." : "บันทึก"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={save} disabled={saving || testing} size="sm" className="h-8">
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </div>
       </div>
 
       <section className="grid gap-2 lg:grid-cols-2">
@@ -136,7 +161,7 @@ export function NotificationContent() {
         <ToggleRow
           icon={<MessageCircle className="h-4 w-4" />}
           title="ส่งผ่าน LINE"
-          description="ใช้ Channel Access Token จากหน้า API keys"
+          description="ส่งแจ้งเตือนอัตโนมัติผ่านระบบ LINE Bot ของ PingPay"
           checked={settings.line_push}
           onChange={(value) => update("line_push", value)}
         />
@@ -187,6 +212,41 @@ export function NotificationContent() {
             maxLength={240}
           />
         </div>
+      </section>
+
+      {/* ── Sandbox Test Section ── */}
+      <section className="rounded-xl border border-border/60 bg-background p-4 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">ทดสอบส่งแจ้งเตือน LINE (Sandbox)</h3>
+          <p className="text-xs text-muted-foreground">
+            ทดลองส่งข้อความจำลองเข้า LINE ID ที่ระบุ (ต้องเพิ่มเพื่อนกับ LINE Bot ของระบบก่อน)
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">LINE User ID ของผู้รับ (เช่น U123456789...)</Label>
+            <Input
+              type="text"
+              value={testLineId}
+              onChange={(e) => setTestLineId(e.target.value)}
+              placeholder="วาง LINE User ID ของคุณหรือเพื่อนที่นี่..."
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              onClick={handleTest}
+              disabled={testing || !testLineId.trim()}
+              className="w-full sm:w-auto h-10"
+            >
+              {testing ? "กำลังส่ง..." : "ส่งข้อความทดสอบ"}
+            </Button>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          * LINE User ID สามารถดูได้จากระบบข้อมูลเพื่อน/ลูกค้า หรือ LINE Developer Console เมื่อส่งข้อความเข้าห้องแชท
+        </p>
       </section>
     </div>
   );

@@ -41,6 +41,18 @@ import { useAuth } from "@/hooks/useAuth";
 
 const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
 
+function proofHref(proofUrl: string) {
+  if (
+    proofUrl.startsWith("data:") ||
+    proofUrl.startsWith("http://") ||
+    proofUrl.startsWith("https://")
+  ) {
+    return proofUrl;
+  }
+
+  return `${API_BASE}${proofUrl}`;
+}
+
 function Hint({
   label,
   children,
@@ -744,7 +756,7 @@ function LoanDetailModal({
       <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <Avatar name={loan.borrower?.name ?? "?"} size="md" />
+            <Avatar name={loan.borrower?.name ?? "?"} avatar={loan.borrower?.avatar} size="md" />
             <div className="flex-1 min-w-0">
               <p className="text-base font-semibold">
                 {loan.borrower?.name ?? `#${loan.id}`}
@@ -799,7 +811,7 @@ function LoanDetailModal({
           pendingPayments.length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                รอยืนยัน ({pendingPayments.length})
+                รออ่านสลิป ({pendingPayments.length})
               </p>
               {pendingPayments.map((p) => (
                 <div
@@ -818,7 +830,7 @@ function LoanDetailModal({
                     </div>
                     {p.proof_url && (
                       <a
-                        href={`${API_BASE}${p.proof_url}`}
+                        href={proofHref(p.proof_url)}
                         target="_blank"
                         rel="noopener"
                         className="text-xs text-amber-700 underline shrink-0"
@@ -834,7 +846,7 @@ function LoanDetailModal({
                       onClick={() => handleConfirm(p.id)}
                       disabled={confirmingId === p.id}
                     >
-                      {confirmingId === p.id ? "..." : "✓ ยืนยัน"}
+                      {confirmingId === p.id ? "..." : "อ่านแล้ว"}
                     </Button>
                     <Button
                       size="sm"
@@ -866,13 +878,25 @@ function LoanDetailModal({
                   .map((p) => (
                     <div
                       key={p.id}
-                      className="flex justify-between px-3 py-2 border-b border-border last:border-b-0"
+                      className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border last:border-b-0"
                     >
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(p.paid_at).toLocaleDateString("th-TH")}
-                        {p.note && ` · ${p.note}`}
-                      </p>
-                      <span className="text-xs font-medium text-emerald-600 tabular-nums">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground truncate">
+                          {new Date(p.paid_at).toLocaleDateString("th-TH")}
+                          {p.note && ` · ${p.note}`}
+                        </p>
+                        {p.proof_url && (
+                          <a
+                            href={proofHref(p.proof_url)}
+                            target="_blank"
+                            rel="noopener"
+                            className="text-[11px] text-emerald-700 underline"
+                          >
+                            อ่านสลิปแล้ว
+                          </a>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-emerald-600 tabular-nums shrink-0">
                         {fmt(parseFloat(p.amount))}
                       </span>
                     </div>
@@ -946,6 +970,8 @@ function AddLoanModal({
   const [manualName, setManualName] = useState("");
   const [loading, setLoading] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [proofUrl, setProofUrl] = useState("");
+  const [proofName, setProofName] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -969,11 +995,25 @@ function AddLoanModal({
     setTripMembers([]);
     setMemberSearch("");
     setManualName("");
+    setProofUrl("");
+    setProofName("");
   };
 
   const handleClose = () => {
     reset();
     onClose();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setProofName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProofUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmitSingle = async () => {
@@ -986,6 +1026,10 @@ function AddLoanModal({
       toast.error("กรุณาใส่จำนวนเงิน");
       return;
     }
+    if (!proofUrl) {
+      toast.error("กรุณาแนบหลักฐาน (รูปสลิปหรือสัญญา)");
+      return;
+    }
     setLoading(true);
     try {
       await api.createLoan({
@@ -993,8 +1037,9 @@ function AddLoanModal({
         amount: amt,
         description: desc || undefined,
         due_date: dueDate || undefined,
+        proof_url: proofUrl,
       });
-      toast.success("เพิ่มรายการสำเร็จ");
+      toast.success("เพิ่มรายการสำเร็จ (รอเพื่อนกดยอมรับ)");
       reset();
       onCreated();
       onClose();
@@ -1040,6 +1085,10 @@ function AddLoanModal({
       toast.error("กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน");
       return;
     }
+    if (!proofUrl) {
+      toast.error("กรุณาแนบหลักฐาน (รูปใบเสร็จ/สลิปของกลุ่ม)");
+      return;
+    }
     setLoading(true);
     try {
       await api.createGroup({
@@ -1047,8 +1096,9 @@ function AddLoanModal({
         amount_per_person: amt,
         due_date: tripDueDate || undefined,
         members: tripMembers.map((m) => ({ name: m.name, user_id: m.user_id })),
+        proof_url: proofUrl,
       });
-      toast.success(`สร้างทริป "${tripName}" สำเร็จ!`);
+      toast.success(`สร้างทริป "${tripName}" สำเร็จ! (รอเพื่อนแต่ละคนกดยอมรับ)`);
       reset();
       onCreated();
       onClose();
@@ -1134,27 +1184,40 @@ function AddLoanModal({
                       ไม่พบสมาชิก
                     </p>
                   ) : (
-                    filtered.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          setBorrowerId(m.id);
-                          setSearch(m.name);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          borrowerId === m.id
-                            ? "bg-foreground/8 font-medium"
-                            : "hover:bg-muted/60"
-                        }`}
-                      >
-                        <span className="font-medium">{m.name}</span>
-                        {m.email && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {m.email}
-                          </span>
-                        )}
-                      </button>
-                    ))
+                    filtered.map((m) => {
+                      const isPending = m.approval_status === "pending";
+                      return (
+                        <button
+                          key={m.id}
+                          disabled={isPending}
+                          onClick={() => {
+                            setBorrowerId(m.id);
+                            setSearch(m.name);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                            isPending
+                              ? "opacity-50 cursor-not-allowed bg-muted/20"
+                              : borrowerId === m.id
+                                ? "bg-foreground/8 font-medium"
+                                : "hover:bg-muted/60"
+                          }`}
+                        >
+                          <div>
+                            <span className="font-medium">{m.name}</span>
+                            {m.email && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {m.email}
+                              </span>
+                            )}
+                          </div>
+                          {isPending && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded font-medium shrink-0">
+                              ยังไม่เชื่อม LINE
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               )}
@@ -1196,6 +1259,24 @@ function AddLoanModal({
                 onChange={(e) => setDueDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
               />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                หลักฐานการยืมเงิน (รูปสลิปหรือสัญญา) *
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer"
+                />
+                {proofName && (
+                  <p className="text-[10px] text-emerald-600 font-medium truncate">
+                    📎 {proofName} (แนบแล้ว)
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 pt-1">
               <Button
@@ -1254,6 +1335,24 @@ function AddLoanModal({
                 value={tripDueDate}
                 onChange={(e) => setTripDueDate(e.target.value)}
               />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                หลักฐานการจ่ายเงิน (รูปใบเสร็จหรือสลิปกลุ่ม) *
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer"
+                />
+                {proofName && (
+                  <p className="text-[10px] text-emerald-600 font-medium truncate">
+                    📎 {proofName} (แนบแล้ว)
+                  </p>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-1.5">
@@ -1458,11 +1557,8 @@ export function DashboardContent() {
 
   const activeLoans = loans.filter((l) => l.status !== "settled");
   const settledLoans = loans.filter((l) => l.status === "settled");
-  const totalPending = Object.values(pendingMap).reduce((a, b) => a + b, 0);
 
   const totalLent = data?.total_lent ?? 0;
-  const totalBorrowed = data?.total_borrowed ?? 0;
-  const netBalance = data?.net_balance ?? 0;
 
   const totalRecovered = loans.reduce((sum, loan) => {
     const total = parseFloat(loan.amount);
@@ -1473,43 +1569,27 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-4 p-1">
-      {/* ── Top row: metrics ── */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard
-          label="ยอดสุทธิ"
-          value={fmt(Math.abs(netBalance))}
-          sub={netBalance >= 0 ? "เขาติดเรา" : "เราติดเขา"}
-          accent={netBalance > 0}
-        />
-        <StatCard
-          label="ได้คืนแล้ว"
-          value={fmt(totalRecovered)}
-          sub={`${Math.round(
-            (totalRecovered / (totalRecovered + totalLent || 1)) * 100,
-          )}% ของทั้งหมด`}
-        />
-        <StatCard label="รอยืนยัน" value={String(totalPending)} sub="การชำระ" />
-      </div>
-
       {/* ── Balance donut + lender link ── */}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-3">
         {/* Donut */}
         <div className="rounded-2xl border border-border/60 bg-background p-5">
           <p className="text-sm font-semibold mb-4">สัดส่วนหนี้</p>
 
           <BalanceRing lent={totalLent} recovered={totalRecovered} />
         </div>
+      </div>
 
+      <div className="grid gap-3 sm:grid-cols-1">
         {/* Lender link */}
         {user?.line_id ? (
           <Hint label="คัดลอกลิงก์สำหรับส่งให้ลูกหนี้">
             <button
               onClick={handleCopyLenderLink}
-              className="rounded-2xl border border-border/60 bg-background p-4 text-left hover:bg-muted/30 transition-colors group"
+              className="rounded-2xl border border-border/60 bg-background px-2 py-2 text-left hover:bg-muted/30 transition-colors group"
             >
-              <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
+              {/* <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
                 ลิงก์ของฉัน
-              </p>
+              </p> */}
               <div className="flex items-start gap-2">
                 <div className="w-8 h-8 rounded-xl bg-foreground/6 flex items-center justify-center shrink-0 mt-0.5">
                   {lenderLinkCopied ? (

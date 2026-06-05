@@ -61,7 +61,23 @@ class GroupController extends Controller
             'members'            => 'required|array|min:1',
             'members.*.user_id'  => 'nullable|exists:users,id',
             'members.*.name'     => 'required|string|max:100',
+            'proof_url'          => 'required|string', // แนบหลักฐานเป็น base64 string
         ]);
+
+        // ตรวจสอบว่าเพื่อนทุกคนในกลุ่มที่ระบุมี LINE เชื่อมต่อและอนุมัติแล้ว
+        foreach ($validated['members'] as $member) {
+            if (!empty($member['user_id']) && $member['user_id'] != Auth::id()) {
+                $friendMember = \App\Models\UserMember::where('owner_id', Auth::id())
+                    ->where('member_id', $member['user_id'])
+                    ->first();
+                if (!$friendMember || $friendMember->status !== 'approved') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "เพื่อนที่ชื่อ \"{$member['name']}\" ยังไม่ได้อนุมัติการเชื่อมต่อ LINE ไม่สามารถเพิ่มรายการยืมเงินได้",
+                    ], 422);
+                }
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -92,8 +108,29 @@ class GroupController extends Controller
                         'description'      => $validated['name'],
                         'due_date'         => $validated['due_date'] ?? null,
                         'loan_date'        => now(),
-                        'status'           => 'active',
+                        'status'           => Loan::STATUS_PENDING_APPROVAL,
+                        'proof_url'        => $validated['proof_url'],
                     ]);
+
+                    $mimeType = 'image/png';
+                    if (preg_match('/^data:([^;]+);base64,/', $validated['proof_url'], $matches)) {
+                        $mimeType = $matches[1];
+                    }
+
+                    $loan->proofs()->create([
+                        'file_path'   => 'base64',
+                        'file_name'   => 'loan_evidence',
+                        'mime_type'   => $mimeType,
+                        'file_size'   => strlen($validated['proof_url']),
+                        'uploaded_by' => Auth::id(),
+                    ]);
+
+                    try {
+                        app(\App\Services\LineNotificationService::class)->notifyBorrowerNewLoanPending($loan);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('Line notification for new group loan failed: ' . $e->getMessage());
+                    }
+
                     $loan->load(['borrower:id,name,avatar']);
                     $loans[] = $loan;
                 }

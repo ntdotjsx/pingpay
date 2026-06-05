@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DebtListLayout from "../../layouts/DebtList.astro";
+import { ApproveFriendApp } from "../../components/auth/ApproveFriendApp.tsx";
+---
+
+<DebtListLayout title="อนุมัติการเพิ่มเพื่อนและเชื่อมต่อ LINE — PingPay">
+  <ApproveFriendApp client:only="react" />
+</DebtListLayout>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Services\LineMessagingService;
+use App\Services\LineNotificationService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,8 +64,10 @@ class LoanController extends Controller
         $lender = $request->user();
         $borrower = $loan->borrower;
 
-        if (! filled($lender->line_bot_token)) {
-            return response()->json(['message' => 'ยังไม่ได้ตั้งค่า LINE Messaging API token'], 422);
+        $botToken = config('services.line.bot_token');
+
+        if (! filled($botToken)) {
+            return response()->json(['message' => 'ระบบยังไม่ได้ตั้งค่า LINE Messaging API token กรุณาติดต่อผู้ดูแลระบบ'], 422);
         }
 
         if (! $borrower || ! filled($borrower->line_id)) {
@@ -74,7 +77,7 @@ class LoanController extends Controller
         $message = $validated['message'] ?? $this->defaultReminderMessage($loan);
 
         try {
-            $line->pushText($lender->line_bot_token, $borrower->line_id, $message);
+            $line->pushText($botToken, $borrower->line_id, $message);
         } catch (RequestException $exception) {
             report($exception);
 
@@ -149,6 +152,9 @@ class LoanController extends Controller
 
         $payment->confirm();
 
+        // 🔔 Auto-notify borrower via LINE
+        app(LineNotificationService::class)->notifyBorrowerPaymentConfirmed($loan, $payment);
+
         return response()->json([
             'message' => 'ยืนยันการชำระสำเร็จ',
             'loan' => $loan->fresh(['payments']),
@@ -175,9 +181,14 @@ class LoanController extends Controller
         $payment->reject();
 
         // อัปเดต note ถ้ามี reason
+        $reason = null;
         if ($request->filled('reason')) {
-            $payment->update(['note' => $request->reason]);
+            $reason = $request->reason;
+            $payment->update(['note' => $reason]);
         }
+
+        // 🔔 Auto-notify borrower via LINE
+        app(LineNotificationService::class)->notifyBorrowerPaymentRejected($loan, $payment, $reason);
 
         return response()->json([
             'message' => 'ปฏิเสธการชำระแล้ว',
@@ -190,6 +201,22 @@ class LoanController extends Controller
     // ============================================================
 
     /**
+     * GET /api/slip-payments
+     * รวม payment ที่มีสลิปของ lender คนนี้ สำหรับหน้าเช็คสลิปทีละรายการ
+     */
+    public function slipPayments(Request $request): JsonResponse
+    {
+        $payments = LoanPayment::query()
+            ->whereNotNull('proof_url')
+            ->whereHas('loan', fn ($q) => $q->where('lender_id', $request->user()->id))
+            ->with(['loan:id,lender_id,borrower_id,amount,remaining_amount,description', 'loan.borrower:id,name,avatar', 'proofs'])
+            ->latest('paid_at')
+            ->paginate(30);
+
+        return response()->json($payments);
+    }
+
+    /**
      * GET /api/loans/pending-confirmations
      * รวม pending payment ทุก loan ของ lender
      */
@@ -198,7 +225,7 @@ class LoanController extends Controller
         $pending = LoanPayment::query()
             ->pending()
             ->whereHas('loan', fn ($q) => $q->where('lender_id', $request->user()->id))
-            ->with(['loan:id,lender_id,borrower_id,amount,remaining_amount', 'loan.borrower:id,name', 'proofs'])
+            ->with(['loan:id,lender_id,borrower_id,amount,remaining_amount', 'loan.borrower:id,name,avatar', 'proofs'])
             ->latest('paid_at')
             ->paginate(20);
 
