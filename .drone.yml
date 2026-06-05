@@ -43,7 +43,7 @@ steps:
       - build-frontend
     when:
       branch:
-        - main
+        - hello-world
       event:
         - push
     settings:
