@@ -42,4 +42,9 @@ return [
         'bot_token'     => env('LINE_BOT_TOKEN'),
         'bot_basic_id'  => env('LINE_BOT_BASIC_ID'),
     ],
+
+    'slipok' => [
+        'api_key'   => env('SLIPOK_API_KEY'),
+        'branch_id' => env('SLIPOK_BRANCH_ID'),
+    ],
 ];

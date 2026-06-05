@@ -34,6 +34,8 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
   const [tripName, setTripName] = useState("")
   const [amountStr, setAmountStr] = useState("")
   const [dueDate, setDueDate] = useState("")
+  const [proofUrl, setProofUrl] = useState("")
+  const [proofName, setProofName] = useState("")
 
   // Step 2
   const [members, setMembers] = useState<Member[]>([])
@@ -48,6 +50,18 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
 
   const [saving, setSaving] = useState(false)
   const amount = parseFloat(amountStr) || 0
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setProofName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setProofUrl(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Debounced search — เรียก API ทุกครั้งที่พิมพ์
   useEffect(() => {
@@ -81,11 +95,12 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
     setStep("info"); setTripName(""); setAmountStr(""); setDueDate("")
     setMembers([]); setSearchQ(""); setNameInput(""); setSaving(false)
     setSearchResults([]); setShowDropdown(false)
+    setProofUrl(""); setProofName("")
   }
 
   const handleClose = () => { reset(); onClose() }
 
-  const canNext1 = tripName.trim().length > 0 && amount > 0
+  const canNext1 = tripName.trim().length > 0 && amount > 0 && !!proofUrl
 
   // แยก search results เป็น เพิ่มแล้ว / ยังไม่เพิ่ม
   const notAdded = searchResults.filter((m) => !members.some((sel) => sel.user_id === m.id))
@@ -110,6 +125,10 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
   const removeMember = (id: string) => setMembers((prev) => prev.filter((m) => m.id !== id))
 
   const handleCreate = async () => {
+    if (!proofUrl) {
+      toast.error("กรุณาแนบภาพหลักฐานการโอนเงินก่อน")
+      return
+    }
     setSaving(true)
     try {
       await api.createGroup({
@@ -117,6 +136,7 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
         amount_per_person: amount,
         due_date: dueDate || undefined,
         members: members.map((m) => ({ name: m.name, user_id: m.user_id })),
+        proof_url: proofUrl,
       })
       toast.success(`สร้างทริป "${tripName}" สำเร็จ!`)
       reset(); onCreated()
@@ -178,6 +198,22 @@ export function CreateTripModal({ open, onClose, onCreated }: CreateTripModalPro
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">กำหนดชำระ (ไม่บังคับ)</label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">หลักฐานการยืมเงิน (รูปสลิปหรือสัญญา) *</label>
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer"
+                />
+                {proofName && (
+                  <p className="text-[10px] text-emerald-600 font-medium truncate">
+                    📎 {proofName} (แนบแล้ว)
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1" onClick={handleClose}>ยกเลิก</Button>

@@ -9,7 +9,22 @@ import {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
 } from "react";
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   api,
   type ApiDashboard,
@@ -389,50 +404,263 @@ function LoanRow({
 
 // ─── Net Balance ring ─────────────────────────────────────────────────────────
 function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
-  const total = lent + recovered;
-  const recoveredPct = total > 0 ? Math.round((recovered / total) * 100) : 0;
+  const outstanding = Math.max(0, lent - recovered);
+  const recoveredPct = lent > 0 ? Math.round((recovered / lent) * 100) : 0;
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Donut */}
-      <div className="relative shrink-0">
-        <DonutChart pct={recoveredPct} size={72} stroke={8} color="#10b981" />
+    <div className="space-y-3 mt-2">
+      <div className="flex items-center gap-4">
+        {/* Donut */}
+        <div className="relative shrink-0">
+          <DonutChart pct={recoveredPct} size={60} stroke={7} color="#10b981" />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold tabular-nums">
-            {recoveredPct}%
-          </span>
-          <span className="text-[10px] text-muted-foreground">คืนแล้ว</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-sm font-bold tabular-nums">
+              {recoveredPct}%
+            </span>
+            <span className="text-[8px] text-muted-foreground leading-none">คืนแล้ว</span>
+          </div>
+        </div>
+
+        {/* Detail */}
+        <div className="flex-1 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-xs text-muted-foreground">ยังค้าง</span>
+            </div>
+
+            <span className="text-xs font-semibold text-amber-600 tabular-nums">
+              {fmt(outstanding)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-muted-foreground">ได้คืนแล้ว</span>
+            </div>
+
+            <span className="text-xs font-semibold text-emerald-600 tabular-nums">
+              {fmt(recovered)}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Detail */}
-      <div className="flex-1 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span className="text-sm text-muted-foreground">ยังค้าง</span>
-          </div>
+      {/* Divider */}
+      <div className="h-px bg-border/50" />
 
-          <span className="font-semibold text-amber-600 tabular-nums">
-            {fmt(lent)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-sm text-muted-foreground">ได้คืนแล้ว</span>
-          </div>
-
-          <span className="font-semibold text-emerald-600 tabular-nums">
-            {fmt(recovered)}
-          </span>
-        </div>
+      {/* Quick Summary / Status */}
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-muted-foreground flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 text-muted-foreground/75 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+          </svg>
+          <span>ยอดปล่อยกู้รวม:</span>
+          <span className="font-semibold text-foreground tabular-nums">{fmt(lent)}</span>
+        </span>
+        <span className={`font-semibold ${
+          recoveredPct === 100 ? "text-emerald-500" :
+          recoveredPct >= 70 ? "text-emerald-600" :
+          recoveredPct > 0 ? "text-amber-500" :
+          "text-muted-foreground"
+        }`}>
+          {recoveredPct === 100 ? "✓ ทวงครบแล้ว!" :
+           recoveredPct >= 70 ? "เก็บได้ส่วนใหญ่" :
+           recoveredPct > 0 ? "กำลังทยอยคืน" :
+           "ยังไม่มีการชำระ"}
+        </span>
       </div>
     </div>
   );
 }
+
+function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  const allMonths = useMemo(() => {
+    const monthsSet = new Set<string>();
+    loans.forEach((loan) => {
+      if (loan.loan_date) {
+        monthsSet.add(loan.loan_date.substring(0, 7));
+      }
+      loan.payments?.forEach((p) => {
+        if (p.confirmation_status === "confirmed" && p.paid_at) {
+          monthsSet.add(p.paid_at.substring(0, 7));
+        }
+      });
+    });
+    return Array.from(monthsSet).sort().reverse();
+  }, [loans]);
+
+  const activities = useMemo(() => {
+    const list: Array<{
+      id: string;
+      type: "borrow" | "return";
+      date: string;
+      amount: number;
+      name: string;
+      avatar: string | null;
+    }> = [];
+
+    loans.forEach((loan) => {
+      list.push({
+        id: `loan-${loan.id}`,
+        type: "borrow",
+        date: loan.loan_date.split("T")[0],
+        amount: parseFloat(loan.amount),
+        name: loan.borrower?.name ?? "เพื่อน",
+        avatar: loan.borrower?.avatar ?? null,
+      });
+
+      loan.payments?.forEach((payment) => {
+        if (payment.confirmation_status === "confirmed") {
+          list.push({
+            id: `pay-${payment.id}`,
+            type: "return",
+            date: payment.paid_at.split("T")[0],
+            amount: parseFloat(payment.amount),
+            name: loan.borrower?.name ?? "เพื่อน",
+            avatar: loan.borrower?.avatar ?? null,
+          });
+        }
+      });
+    });
+
+    const filtered = list.filter((item) => {
+      if (selectedMonth === "all") return true;
+      return item.date.startsWith(selectedMonth);
+    });
+
+    const sorted = filtered.sort((a, b) => a.date.localeCompare(b.date));
+    return sorted.slice(-5);
+  }, [loans, selectedMonth]);
+
+  const formatMonthYear = (ym: string) => {
+    const [y, m] = ym.split("-");
+    const months = [
+      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    const monthIdx = parseInt(m, 10) - 1;
+    const shortYear = parseInt(y, 10) + 543;
+    return `${months[monthIdx]} ${String(shortYear).substring(2)}`;
+  };
+
+  const chartConfig = {
+    amount: {
+      label: "จำนวนเงิน",
+      color: "#f43f5e",
+    },
+  } satisfies ChartConfig;
+
+  return (
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-sm font-semibold text-foreground">ความเคลื่อนไหวธุรกรรมล่าสุด</p>
+        </div>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="text-xs border border-border bg-background rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground font-medium"
+        >
+          <option value="all">ทั้งหมด</option>
+          {allMonths.map((ym) => (
+            <option key={ym} value={ym}>
+              {formatMonthYear(ym)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {activities.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs py-8">
+          <span>ยังไม่มีข้อมูลการยืม/คืนเพื่อแสดงกราฟ</span>
+        </div>
+      ) : (
+        <div className="flex-1 mt-2">
+          <ChartContainer config={chartConfig} className="w-full h-[85px] aspect-auto">
+            <BarChart
+              data={activities}
+              margin={{ top: 25, right: 10, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="id"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value, index) => {
+                  const item = activities[index];
+                  if (!item) return "";
+                  const parts = item.date.split("-");
+                  return parts.length >= 3 ? `${parts[2]}/${parts[1]}` : item.date;
+                }}
+              />
+              <YAxis hide />
+              <ChartTooltip
+                cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label, payload) => {
+                      const item = payload?.[0]?.payload;
+                      return item ? `วันที่: ${item.date}` : `วันที่: ${label}`;
+                    }}
+                    formatter={(value, name, item) => {
+                      const isBorrow = item.payload.type === "borrow";
+                      return (
+                        <span className={isBorrow ? "text-rose-500 font-bold" : "text-emerald-500 font-bold"}>
+                          {isBorrow ? "ยืมออก" : "จ่ายคืน"}: {fmt(value as number)} ({item.payload.name})
+                        </span>
+                      );
+                    }}
+                  />
+                }
+              />
+              <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={26}
+                label={(props: any) => {
+                  const { x, y, width, index } = props;
+                  const item = activities[index];
+                  if (!item) return null;
+                  return (
+                    <g>
+                      <foreignObject x={x + width / 2 - 10} y={y - 25} width="20" height="20">
+                        <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-muted border border-border/50 shadow-sm">
+                          {item.avatar ? (
+                            <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            <span className="text-[8px] font-bold text-muted-foreground">
+                              {item.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                }}
+              >
+                {activities.map((entry, index) => {
+                  const isBorrow = entry.type === "borrow";
+                  return (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={isBorrow ? "#f43f5e" : "#10b981"}
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Loan detail modal (unchanged functionality, cleaner look) ────────────────
 
 function monthLabel(date: Date) {
@@ -938,6 +1166,7 @@ interface Member {
   id: number;
   name: string;
   email: string | null;
+  approval_status?: string;
 }
 interface TripMember {
   id: string;
@@ -1496,6 +1725,7 @@ export function DashboardContent() {
   const [selectedLoan, setSelectedLoan] = useState<ApiLoan | null>(null);
   const [tab, setTab] = useState<"active" | "settled">("active");
   const [lenderLinkCopied, setLenderLinkCopied] = useState(false);
+  const [hasPromptPay, setHasPromptPay] = useState<boolean | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (!user) {
@@ -1503,6 +1733,12 @@ export function DashboardContent() {
       return;
     }
     try {
+      api.getApiKeys()
+        .then((keys) => {
+          setHasPromptPay(keys.promptpay.has_id);
+        })
+        .catch(() => {});
+
       const [dash, loanList] = await Promise.all([
         api.getDashboard(),
         api.getLoans({ role: "lender" }),
@@ -1532,6 +1768,14 @@ export function DashboardContent() {
     await navigator.clipboard.writeText(link);
     setLenderLinkCopied(true);
     setTimeout(() => setLenderLinkCopied(false), 2000);
+  };
+
+  const handleOpenAdd = () => {
+    if (hasPromptPay === false) {
+      toast.error("กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มรายการยืมเงิน");
+      return;
+    }
+    setShowAdd(true);
   };
 
   if (loading)
@@ -1576,6 +1820,11 @@ export function DashboardContent() {
           <p className="text-sm font-semibold mb-4">สัดส่วนหนี้</p>
 
           <BalanceRing lent={totalLent} recovered={totalRecovered} />
+        </div>
+
+        {/* Recent Transaction Activity Timeline / Line Graph */}
+        <div className="rounded-2xl border border-border/60 bg-background p-5 lg:col-span-2">
+          <ActivityLineGraph loans={loans} />
         </div>
       </div>
 
@@ -1685,7 +1934,7 @@ export function DashboardContent() {
           </Hint>
           <Hint label="เพิ่มรายการหนี้ใหม่">
             <Button
-              onClick={() => setShowAdd(true)}
+              onClick={handleOpenAdd}
               size="sm"
               className="gap-1.5 shrink-0 h-8 px-3 text-xs"
             >
@@ -1720,7 +1969,7 @@ export function DashboardContent() {
               {tab === "active" && (
                 <Hint label="สร้างรายการหนี้รายการแรก">
                   <button
-                    onClick={() => setShowAdd(true)}
+                    onClick={handleOpenAdd}
                     className="mt-3 text-xs text-primary underline underline-offset-2"
                   >
                     + เพิ่มรายการแรก

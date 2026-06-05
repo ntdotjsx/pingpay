@@ -48,7 +48,14 @@ function proofHref(proofUrl: string) {
   return `${API_BASE}${proofUrl}`;
 }
 
-function statusText(status: ApiPayment["confirmation_status"]) {
+function getPillStatus(payment: ApiPayment): "pending" | "confirmed" | "rejected" {
+  if (payment.confirmation_status === "rejected") return "rejected";
+  if (payment.confirmation_status === "confirmed" && !payment.is_read) return "pending";
+  return payment.confirmation_status;
+}
+
+function statusText(payment: ApiPayment) {
+  const status = getPillStatus(payment);
   if (status === "confirmed") return "อ่านแล้ว";
   if (status === "rejected") return "ปฏิเสธ";
   return "รออ่าน";
@@ -56,7 +63,8 @@ function statusText(status: ApiPayment["confirmation_status"]) {
 
 type StatusStyle = { pill: string; dot: string };
 
-function statusStyle(status: ApiPayment["confirmation_status"]): StatusStyle {
+function statusStyle(payment: ApiPayment): StatusStyle {
+  const status = getPillStatus(payment);
   if (status === "confirmed")
     return { pill: "bg-[#e8f8f2] text-[#1a9e6a]", dot: "bg-[#1a9e6a]" };
   if (status === "rejected")
@@ -86,7 +94,7 @@ function PaymentAvatar({ name, avatar }: { name: string; avatar?: string | null 
 }
 
 function SummaryStrip({ payments }: { payments: ApiPayment[] }) {
-  const pending = payments.filter((p) => p.confirmation_status === "pending");
+  const pending = payments.filter((p) => p.confirmation_status === "pending" || (p.confirmation_status === "confirmed" && !p.is_read));
   const totalPending = pending.reduce((s, p) => s + parseFloat(p.amount), 0);
 
   return (
@@ -143,6 +151,8 @@ export function SlipChecksContent() {
       })
       .filter((p) => {
         if (filter === "all") return true;
+        if (filter === "pending") return p.confirmation_status === "pending" || (p.confirmation_status === "confirmed" && !p.is_read);
+        if (filter === "confirmed") return p.confirmation_status === "confirmed" && !!p.is_read;
         return p.confirmation_status === filter;
       });
   }, [payments, query, filter]);
@@ -170,7 +180,11 @@ export function SlipChecksContent() {
     if (!payment.loan?.id) return;
     setSavingId(payment.id);
     try {
-      await api.confirmPayment(payment.loan.id, payment.id);
+      if (payment.confirmation_status === "pending") {
+        await api.confirmPayment(payment.loan.id, payment.id);
+      } else {
+        await api.readPayment(payment.loan.id, payment.id);
+      }
       toast.success("อ่านสลิปแล้ว");
       await load();
     } catch (error: any) {
@@ -205,7 +219,7 @@ export function SlipChecksContent() {
 
   /* ─── Detail view ─── */
   if (selectedId !== null && selected) {
-    const st = statusStyle(selected.confirmation_status);
+    const st = statusStyle(selected);
     const name = selected.loan?.borrower?.name ?? `รายการ #${selected.id}`;
     return (
       <div className="space-y-4 p-1">
@@ -227,7 +241,7 @@ export function SlipChecksContent() {
           </div>
           <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${st.pill}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
-            {statusText(selected.confirmation_status)}
+            {statusText(selected)}
           </span>
         </div>
 
@@ -254,7 +268,7 @@ export function SlipChecksContent() {
         </div>
 
         {/* Actions */}
-        {selected.confirmation_status === "pending" && (
+        {(selected.confirmation_status === "pending" || (selected.confirmation_status === "confirmed" && !selected.is_read)) && (
           <div className="flex gap-2">
             <Button
               className="h-9 flex-1 gap-2 rounded-xl bg-foreground text-background shadow-none hover:bg-foreground/90"
@@ -264,15 +278,17 @@ export function SlipChecksContent() {
               <CheckCircle2 className="h-4 w-4" />
               อ่านแล้ว
             </Button>
-            <Button
-              variant="outline"
-              className="h-9 flex-1 gap-2 rounded-xl text-destructive hover:bg-destructive/5 hover:border-destructive/30"
-              onClick={() => reject(selected)}
-              disabled={savingId === selected.id}
-            >
-              <XCircle className="h-4 w-4" />
-              ปฏิเสธ
-            </Button>
+            {selected.confirmation_status === "pending" && (
+              <Button
+                variant="outline"
+                className="h-9 flex-1 gap-2 rounded-xl text-destructive hover:bg-destructive/5 hover:border-destructive/30"
+                onClick={() => reject(selected)}
+                disabled={savingId === selected.id}
+              >
+                <XCircle className="h-4 w-4" />
+                ปฏิเสธ
+              </Button>
+            )}
           </div>
         )}
 
@@ -437,7 +453,7 @@ export function SlipChecksContent() {
         <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
           <div className="divide-y divide-border/50">
             {filtered.map((payment) => {
-              const st = statusStyle(payment.confirmation_status);
+              const st = statusStyle(payment);
               const name = payment.loan?.borrower?.name ?? `รายการ #${payment.id}`;
               return (
                 <button
@@ -461,7 +477,7 @@ export function SlipChecksContent() {
                     </p>
                     <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${st.pill}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
-                      {statusText(payment.confirmation_status)}
+                      {statusText(payment)}
                     </span>
                   </div>
                 </button>

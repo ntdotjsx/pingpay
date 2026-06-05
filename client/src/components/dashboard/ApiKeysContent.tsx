@@ -154,56 +154,15 @@ export function ApiKeysContent() {
                 <p className="text-xs text-muted-foreground">ตรวจสอบสลิปชำระเงินอัตโนมัติ</p>
               </div>
             </div>
-            <StatusBadge active={!!settings?.slipok.has_api_key} />
+            <StatusBadge active={true} />
           </div>
 
           <div className="mt-4 space-y-3">
-            {settings?.slipok.masked_api_key && (
-              <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Current</p>
-                <p className="mt-0.5 truncate font-mono text-xs">{settings.slipok.masked_api_key}</p>
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">API key</Label>
-                <Input
-                  type="password"
-                  value={slipokKey}
-                  onChange={(e) => setSlipokKey(e.target.value)}
-                  placeholder="วาง SlipOK API key"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Branch ID</Label>
-                <Input
-                  value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  placeholder="optional"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => saveSection("slipok")}
-                disabled={saving !== null}
-                className="gap-1.5"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-                บันทึก
-              </Button>
-              {settings?.slipok.has_api_key && (
-                <Button
-                  variant="outline"
-                  onClick={() => clearSection("slipok")}
-                  disabled={saving !== null}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  ลบ
-                </Button>
-              )}
+            <div className="rounded-lg border border-sky-100 bg-sky-50/30 p-3.5 text-xs text-sky-900 dark:border-sky-950/50 dark:bg-sky-950/10 dark:text-sky-300">
+              <p className="font-semibold text-sky-700 dark:text-sky-400">ระบบตรวจสอบสลิปของแพลตฟอร์มเปิดใช้งานอยู่</p>
+              <p className="mt-1.5 leading-relaxed text-muted-foreground">
+                ผู้ใช้งานไม่จำเป็นต้องตั้งค่า SlipOK API key ด้วยตนเองอีกต่อไป ระบบส่วนกลางจะทำการตรวจสอบสลิปและยอดโอนให้เจ้าหนี้โดยอัตโนมัติ
+              </p>
             </div>
           </div>
         </section>

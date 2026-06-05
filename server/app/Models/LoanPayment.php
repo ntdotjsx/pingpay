@@ -98,7 +98,10 @@ class LoanPayment extends Model
 
     public function confirm(): void
     {
-        $this->update(['confirmation_status' => self::STATUS_CONFIRMED]);
+        $this->update([
+            'confirmation_status' => self::STATUS_CONFIRMED,
+            'is_read' => true,
+        ]);
     }
 
     public function reject(): void

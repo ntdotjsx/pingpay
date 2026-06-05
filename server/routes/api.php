@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('{loan}/payments/pending',         [LoanController::class, 'pendingPayments']);
         Route::post('{loan}/payments/{payment}/confirm', [LoanController::class, 'confirmPayment']);
         Route::post('{loan}/payments/{payment}/reject', [LoanController::class, 'rejectPayment']);
+        Route::post('{loan}/payments/{payment}/read', [LoanController::class, 'readPayment']);
     });
 
     // รวม pending confirmations ทุก loan ของ lender คนนี้

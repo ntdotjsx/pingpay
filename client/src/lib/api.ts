@@ -42,6 +42,7 @@ export interface ApiPayment {
   note: string | null;
   paid_at: string;
   confirmation_status: "pending" | "confirmed" | "rejected";
+  is_read?: boolean | number;
   proof_url: string | null;
   proofs?: ApiProof[];
   loan?: Pick<
@@ -353,6 +354,12 @@ export const api = {
 
   async confirmPayment(loanId: number, paymentId: number) {
     return apiFetch(`/loans/${loanId}/payments/${paymentId}/confirm`, {
+      method: "POST",
+    });
+  },
+
+  async readPayment(loanId: number, paymentId: number) {
+    return apiFetch(`/loans/${loanId}/payments/${paymentId}/read`, {
       method: "POST",
     });
   },
