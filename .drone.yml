@@ -1,0 +1,58 @@
+kind: pipeline
+type: docker
+name: pingpay-pipeline
+
+steps:
+  # 1. Install PHP Composer Dependencies
+  - name: backend-setup
+    image: composer:2
+    volumes:
+      - name: composer-cache
+        path: /tmp/cache
+    commands:
+      - cd server
+      - composer install --no-interaction --prefer-dist --optimize-autoloader
+
+  # 2. Run backend migrations and tests with Postgres service
+  - name: backend-test
+    image: php:8.3-alpine
+    depends_on:
+      - backend-setup
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: pingpay_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres_test_password
+    commands:
+      - apk add --no-cache libpq-dev postgresql-client
+      - docker-php-ext-install pdo pdo_pgsql
+      - cd server
+      - cp .env.example .env
+      - php artisan key:generate
+      # Wait for the PostgreSQL service to be ready
+      - until pg_isready -h database -p 5432 -U postgres; do sleep 1; done
+      - php artisan migrate --force
+      - php artisan test
+
+  # 3. Build Astro frontend
+  - name: frontend-build
+    image: node:20-alpine
+    commands:
+      - cd client
+      - npm install
+      - npm run build
+
+# Docker services to run during pipeline execution
+services:
+  - name: database
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_test_password
+      POSTGRES_DB: pingpay_test
+
+volumes:
+  - name: composer-cache
+    temp: {}
