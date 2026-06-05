@@ -56,7 +56,7 @@ steps:
       port: 22
       script:
         - cd /var/www/pingpay
-        - cp /home/deploy/.env.pingpay /var/www/pingpay/.env
+        - cp /home/ntdotjsx/.env.pingpay /var/www/pingpay/.env
         - docker compose pull
         - docker compose up -d
         - docker compose exec backend php artisan migrate --force
