@@ -6,6 +6,8 @@ import sitemap from "@astrojs/sitemap";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 // https://astro.build/config
 export default defineConfig({
   site: "https://example.com",
@@ -43,7 +45,7 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    server: {
+    server: isDev ? {
       proxy: {
         "/api": {
           target: "http://localhost:8000",
@@ -55,6 +57,6 @@ export default defineConfig({
           },
         },
       },
-    },
+    } : {},
   },
 });
