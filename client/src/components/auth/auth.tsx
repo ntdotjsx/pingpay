@@ -20,7 +20,7 @@ export function AuthPage() {
   async function handleLineLogin() {
     setLineLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/auth/line");
+      const res = await fetch("/api/auth/line");
       const data = await res.json();
       window.location.href = data.url; // redirect ไป LINE
     } catch (err) {
