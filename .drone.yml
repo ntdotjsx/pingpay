@@ -6,6 +6,7 @@ steps:
   # 1. Build และ Push backend image ไป registry
   - name: build-backend
     image: plugins/docker
+    privileged: true
     settings:
       repo: 192.168.1.101:5000/pingpay-backend
       registry: 192.168.1.101:5000
@@ -19,6 +20,7 @@ steps:
   # 2. Build และ Push frontend image ไป registry
   - name: build-frontend
     image: plugins/docker
+    privileged: true
     settings:
       repo: 192.168.1.101:5000/pingpay-frontend
       registry: 192.168.1.101:5000
