@@ -25,11 +25,15 @@ steps:
       repo: 192.168.1.101:5000/pingpay-frontend
       registry: 192.168.1.101:5000
       insecure: true
+      build_args:
+        - NODE_ENV=production
       tags:
         - latest
         - ${DRONE_COMMIT_SHA:0:8}
       dockerfile: client/Dockerfile
       context: client
+      custom_labels:
+        - "build=debug"
 
   # 3. SSH ไป VM #2 แล้ว pull + deploy
   - name: deploy
