@@ -49,6 +49,7 @@ export default function GuestPayApp() {
   const [approving, setApproving] = useState(false);
 
   const handleApproveLoan = async () => {
+    if (!token) return;
     setApproving(true);
     try {
       await api.guestApproveLoan(token);
@@ -120,7 +121,7 @@ export default function GuestPayApp() {
   // ──────────────────────────────────────────────
   //  Derived
   // ──────────────────────────────────────────────
-  const owed = loan?.remaining ?? 0;
+  const owed = loan?.remaining ? parseFloat(loan.remaining as any) : 0;
   const amount = mode === "full" ? owed : parseFloat(partAmt) || 0;
   const canPromptPay = info?.payment_capabilities?.promptpay ?? false;
   const canSlipOk = info?.payment_capabilities?.slipok ?? false;
@@ -167,6 +168,8 @@ export default function GuestPayApp() {
     }
   };
 
+
+
   // ──────────────────────────────────────────────
   //  Step: QR → slip (ผู้ใช้กดว่าชำระแล้ว)
   // ──────────────────────────────────────────────
@@ -201,17 +204,24 @@ export default function GuestPayApp() {
   // ──────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!loan || !token) return;
+    if (!slip) {
+      toast.error("กรุณาอัปโหลดสลิปการโอนเงินเพื่อแจ้งชำระเงิน");
+      return;
+    }
     setSubmitting(true);
     try {
-      if (canSlipOk && slip && !verifyResult?.verified) {
+      if (canSlipOk && !verifyResult?.verified) {
         const result = await handleVerify();
-        if (!result?.verified) return;
+        if (!result?.verified) {
+          setSubmitting(false);
+          return;
+        }
       }
 
       await api.guestPay(token, {
         amount,
         note: note || undefined,
-        slip: slip || undefined,
+        slip: slip,
       });
       setStep("done");
       toast.success(slip ? "อ่านสลิปแล้ว บันทึกการชำระสำเร็จ" : "บันทึกการชำระสำเร็จ");
@@ -246,7 +256,7 @@ export default function GuestPayApp() {
   if (!loan) return null;
 
   const settled = loan.status === "settled";
-  const pendingApproval = loan.status === "pending_approval";
+  const pendingApproval = (loan.status as string) === "pending_approval";
 
   if (pendingApproval) {
     const hasProof = !!loan.proofs?.[0] || !!(loan as any).proof_url;
@@ -296,7 +306,7 @@ export default function GuestPayApp() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">ยอดเงินยืม</p>
-              <p className="text-xl font-bold text-foreground mt-0.5">{fmt(parseFloat(loan.amount))}</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">{fmt(loan.amount)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">วันที่ยืม</p>
@@ -531,8 +541,9 @@ export default function GuestPayApp() {
         {/* partial amount input */}
         {mode === "part" && (
           <div className="bg-muted/50 rounded-xl p-3.5 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              จำนวนเงินที่ต้องการชำระ
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex justify-between">
+              <span>จำนวนเงินที่ต้องการชำระ</span>
+              <span className="text-muted-foreground/85 font-normal">ยอดค้างทั้งหมด: {fmt(owed)}</span>
             </p>
             <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2">
               <span className="text-sm font-medium text-muted-foreground">
@@ -787,18 +798,6 @@ export default function GuestPayApp() {
       </div>
     );
 
-  useEffect(() => {
-    // Reset flag when step leaves "amount"
-    if (step !== "amount") {
-      qrGeneratedRef.current = false;
-      return;
-    }
-    // If we are in "amount" step and conditions are met and haven't clicked yet, trigger
-    if (amount > 0 && amount <= owed && !qrGeneratedRef.current) {
-      generateQrButtonRef.current?.click();
-      qrGeneratedRef.current = true;
-    }
-  }, [step, amount, owed]);
   return null;
 }
 

@@ -231,4 +231,21 @@ class LoanController extends Controller
 
         return response()->json($pending);
     }
+
+    /**
+     * POST /api/loans/{loan}/payments/{payment}/read
+     * เจ้าหนี้กดมาร์กสลิปตัวที่ auto-confirm ว่าอ่านแล้ว
+     */
+    public function readPayment(Request $request, Loan $loan, LoanPayment $payment): JsonResponse
+    {
+        abort_unless($loan->lender_id === $request->user()->id, 403);
+        abort_unless($payment->loan_id === $loan->id, 404);
+
+        $payment->update(['is_read' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'อ่านสลิปแล้ว',
+        ]);
+    }
 }

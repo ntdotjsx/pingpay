@@ -74,7 +74,7 @@ export const footerNavLinks: SidebarNavItem[] = [
   // },
   {
     title: "สถานะของระบบ",
-    path: "#/status",
+    path: "https://status.ntdotjsx.site/",
     icon: <ActivityIcon />,
   },
 ];

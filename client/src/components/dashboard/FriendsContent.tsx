@@ -517,6 +517,8 @@ export function FriendsContent() {
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
 
+  const [hasPromptPay, setHasPromptPay] = useState<boolean | null>(null);
+
   const fetchMembers = useCallback(() => {
     setLoading(true);
     api
@@ -528,6 +530,11 @@ export function FriendsContent() {
 
   useEffect(() => {
     fetchMembers();
+    api.getApiKeys()
+      .then((keys) => {
+        setHasPromptPay(keys.promptpay.has_id);
+      })
+      .catch(() => {});
   }, [fetchMembers]);
 
   const filteredMembers = useMemo(() => {
@@ -565,6 +572,10 @@ export function FriendsContent() {
   const hasFilters = query.trim() !== "" || activeFilterCount > 0;
 
   const openAdd = () => {
+    if (hasPromptPay === false) {
+      toast.error("กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มลูกหนี้ (เพื่อน)");
+      return;
+    }
     setEditTarget(null);
     setFormOpen(true);
   };

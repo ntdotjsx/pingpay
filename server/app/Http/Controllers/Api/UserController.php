@@ -210,6 +210,13 @@ class UserController extends Controller
     /** POST /api/members */
     public function createMember(Request $request): JsonResponse
     {
+        if (!filled(Auth::user()->promptpay_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มลูกหนี้ (เพื่อน)',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'line_id' => 'nullable|string|max:100|unique:users,line_id',
@@ -372,7 +379,7 @@ class UserController extends Controller
         $role = $request->query('role');   // 'lender' | 'borrower' | null = ทั้งคู่
         $status = $request->query('status');
 
-        $query = Loan::with(['lender:id,name,avatar,line_id', 'borrower:id,name,avatar,line_id'])
+        $query = Loan::with(['lender:id,name,avatar,line_id', 'borrower:id,name,avatar,line_id', 'payments'])
             ->when($role === 'lender', fn ($q) => $q->where('lender_id', $userId))
             ->when($role === 'borrower', fn ($q) => $q->where('borrower_id', $userId))
             ->when(! $role, fn ($q) => $q->where(fn ($i) => $i->where('lender_id', $userId)->orWhere('borrower_id', $userId)))
@@ -391,6 +398,13 @@ class UserController extends Controller
     /** POST /api/loans */
     public function createLoan(Request $request): JsonResponse
     {
+        if (!filled(Auth::user()->promptpay_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มรายการยืมเงิน',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'borrower_id' => 'required|integer|exists:users,id',
             'amount' => 'required|numeric|min:1',

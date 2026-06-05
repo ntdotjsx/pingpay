@@ -133,8 +133,74 @@ class GuestLoanController extends Controller
             'amount'  => "required|numeric|min:1|max:{$loan->remaining_amount}",
             'paid_at' => 'nullable|date',
             'note'    => 'nullable|string|max:500',
-            'slip'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'slip'    => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
+
+        // 1. ตรวจสอบสลิปด้วย SlipOK
+        $slipokKey = config('services.slipok.api_key');
+        if (! filled($slipokKey)) {
+            return response()->json([
+                'message' => 'ระบบยังไม่ได้ตั้งค่าระบบตรวจสลิปอัตโนมัติ (SlipOK) กรุณาติดต่อผู้ดูแลระบบ',
+            ], 422);
+        }
+        $file = $request->file('slip');
+        $amount = (float) $validated['amount'];
+        $branchId = config('services.slipok.branch_id');
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)
+                ->withoutVerifying()
+                ->withHeaders([
+                    'x-authorization' => $slipokKey,
+                    'Accept'          => 'application/json',
+                ])
+                ->attach(
+                    'files',
+                    file_get_contents($file->getRealPath()),
+                    $file->getClientOriginalName()
+                )
+                ->post('https://api.slipok.com/api/line/apikey/' . ($branchId ?: '0'), [
+                    'amount' => $amount,
+                ]);
+
+            if (! $response->successful()) {
+                $errorMessage = 'ไม่สามารถตรวจสอบสลิปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง';
+                try {
+                    $json = $response->json();
+                    if (isset($json['message'])) {
+                        $errorMessage = $json['message'];
+                    }
+                } catch (\Throwable $e) {}
+
+                Log::warning('SlipOK verify failed on pay', [
+                    'loan_id' => $loan->id,
+                    'status'  => $response->status(),
+                    'body'    => $response->body(),
+                ]);
+
+                return response()->json([
+                    'message' => $errorMessage,
+                ], 422);
+            }
+
+            $data = $response->json();
+            $slipAmount = isset($data['data']['amount']) ? (float) $data['data']['amount'] : 0;
+            $isValid = ($data['success'] ?? false) === true && $slipAmount >= $amount;
+
+            if (! $isValid) {
+                return response()->json([
+                    'message' => 'สลิปไม่ถูกต้องหรือยอดเงินโอนไม่ตรงกับจำนวนที่ระบุ',
+                ], 422);
+            }
+        } catch (\Throwable $e) {
+            Log::error('SlipOK auto-verify failed on pay', [
+                'loan_id' => $loan->id,
+                'error'   => $e->getMessage(),
+            ]);
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาดในการตรวจสอบสลิปการโอน',
+            ], 422);
+        }
 
         // สร้าง payment — confirmed ทันที ไม่ต้องรอเจ้าหนี้กดยืนยันสลิป
         $payment = $loan->payments()->create([
@@ -238,10 +304,10 @@ class GuestLoanController extends Controller
             ],
             'payment_capabilities' => [
                 'promptpay' => $lender ? $lender->hasPromptPayConfigured() : false,
-                'slipok'    => $lender ? filled($lender->slipok_api_key) : false,
+                'slipok'    => filled(config('services.slipok.api_key')),
             ],
             'can_pay_online' => $lender
-                ? ($lender->hasPromptPayConfigured() || filled($lender->slipok_api_key))
+                ? ($lender->hasPromptPayConfigured() || filled(config('services.slipok.api_key')))
                 : false,
             'line_bot' => $botInfo ? [
                 'has_bot' => true,
@@ -330,15 +396,18 @@ class GuestLoanController extends Controller
     {
         /** @var Loan $loan */
         $loan = $request->attributes->get('guest_loan');
-        $loan->load('lender:id,slipok_api_key,slipok_branch_id');
+        $loan->load('lender:id');
 
         if ($loan->status === Loan::STATUS_SETTLED) {
             return response()->json(['message' => 'หนี้รายการนี้ชำระครบแล้ว'], 422);
         }
 
-        if (! $loan->lender || ! filled($loan->lender->slipok_api_key)) {
+        $apiKey   = config('services.slipok.api_key');
+        $branchId = config('services.slipok.branch_id');
+
+        if (! filled($apiKey)) {
             return response()->json([
-                'message' => 'เจ้าหนี้ยังไม่ได้ตั้งค่า SlipOK API key กรุณาแจ้งเจ้าหนี้ให้ตั้งค่าก่อน',
+                'message' => 'ระบบยังไม่ได้ตั้งค่า SlipOK API key กรุณาแจ้งผู้ดูแลระบบ',
                 'requires_setup' => true,
             ], 422);
         }
@@ -348,8 +417,6 @@ class GuestLoanController extends Controller
             'amount' => "required|numeric|min:1|max:{$loan->remaining_amount}",
         ]);
 
-        $apiKey   = $loan->lender->slipok_api_key;
-        $branchId = $loan->lender->slipok_branch_id;
         $file     = $request->file('slip');
         $amount   = (float) $validated['amount'];
 
@@ -370,15 +437,24 @@ class GuestLoanController extends Controller
                 ]);
 
             if (! $response->successful()) {
+                $errorMessage = 'ไม่สามารถตรวจสอบสลิปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง';
+                try {
+                    $json = $response->json();
+                    if (isset($json['message'])) {
+                        $errorMessage = $json['message'];
+                    }
+                } catch (\Throwable $e) {}
+
                 Log::warning('SlipOK verify failed', [
                     'loan_id' => $loan->id,
                     'status'  => $response->status(),
-                    'body'    => $response->json(),
+                    'body'    => $response->body(),
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่สามารถตรวจสอบสลิปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
-                ], 502);
+                    'message' => $errorMessage,
+                ], 422);
             }
 
             $data = $response->json();
