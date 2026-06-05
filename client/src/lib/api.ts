@@ -44,6 +44,16 @@ export interface ApiPayment {
   confirmation_status: "pending" | "confirmed" | "rejected";
   proof_url: string | null;
   proofs?: ApiProof[];
+  loan?: Pick<
+    ApiLoan,
+    "id" | "lender_id" | "borrower_id" | "amount" | "remaining_amount" | "description"
+  > & {
+    borrower?: {
+      id: number;
+      name: string;
+      avatar?: string | null;
+    } | null;
+  };
 }
 
 export interface ApiProof {
@@ -103,10 +113,6 @@ export interface ApiDashboard {
 }
 
 export interface ApiKeySettings {
-  line_bot: {
-    has_token: boolean;
-    masked_token: string | null;
-  };
   slipok: {
     has_api_key: boolean;
     masked_api_key: string | null;
@@ -136,6 +142,13 @@ export interface CheckoutInfo {
     slipok: boolean;
   };
   can_pay_online: boolean;
+  line_bot?: {
+    has_bot: boolean;
+    basic_id?: string | null;
+    display_name?: string | null;
+    picture_url?: string | null;
+    use_central_bot?: boolean;
+  } | null;
 }
 
 export interface PromptPayQr {
@@ -210,6 +223,7 @@ export interface LenderLoanSummary {
   group_name: string | null;
   borrower_id: number | null;
   borrower_name: string | null;
+  borrower_avatar: string | null;
 }
 
 export interface GuestLenderPage {
@@ -233,6 +247,11 @@ export interface GuestLoan {
   status: "active" | "settled" | "overdue";
   is_overdue: boolean;
   lender: { id: number; name: string; avatar: string | null };
+  borrower?: {
+    id: number;
+    name: string;
+    line_id?: string | null;
+  } | null;
   payments: ApiPayment[];
   proofs: ApiProof[];
 }
@@ -297,6 +316,7 @@ export const api = {
     description?: string;
     due_date?: string;
     loan_date?: string;
+    proof_url: string;
   }) {
     const data = await apiFetch<{ success: boolean; data: ApiLoan }>("/loans", {
       method: "POST",
@@ -371,6 +391,10 @@ export const api = {
     return apiFetch<{ data: ApiPayment[] }>("/pending-confirmations");
   },
 
+  async slipPayments() {
+    return apiFetch<{ data: ApiPayment[] }>("/slip-payments");
+  },
+
   // ============================================================
   //  Dashboard
   // ============================================================
@@ -390,11 +414,9 @@ export const api = {
   },
 
   async updateApiKeys(body: {
-    line_bot_token?: string;
     slipok_api_key?: string;
     slipok_branch_id?: string;
     promptpay_id?: string;
-    clear_line_bot_token?: boolean;
     clear_slipok_api_key?: boolean;
     clear_promptpay_id?: boolean;
   }) {
@@ -425,6 +447,16 @@ export const api = {
       body: JSON.stringify(body),
     });
     return data.data;
+  },
+
+  async testNotification(toLineId?: string) {
+    return await apiFetch<{ success: boolean; message: string }>(
+      "/dashboard/notification/test",
+      {
+        method: "POST",
+        body: toLineId ? JSON.stringify({ to_line_id: toLineId }) : undefined,
+      }
+    );
   },
 
   async getCreditorInsights() {
@@ -481,6 +513,7 @@ export const api = {
     amount_per_person: number;
     due_date?: string;
     members: Array<{ user_id?: number; name: string }>;
+    proof_url: string;
   }) {
     const data = await apiFetch<{ success: boolean; data: ApiGroup }>(
       "/groups",
@@ -600,5 +633,20 @@ export const api = {
       throw new Error(err.message ?? "เกิดข้อผิดพลาด");
     }
     return res.json();
+  },
+
+  async guestApproveLoan(token: string) {
+    const res = await fetch(`${API_BASE}/api/guest/${token}/approve`, {
+      method: "POST",
+      headers: { 
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.message ?? "อนุมัติรายการยืมเงินไม่สำเร็จ");
+    }
+    return data;
   },
 };

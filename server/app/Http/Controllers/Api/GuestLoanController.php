@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Models\User;
+use App\Services\LineNotificationService;
 use App\Services\PromptPayService;
 use Farzai\PromptPay\Exceptions\InvalidAmountException;
 use Farzai\PromptPay\Exceptions\InvalidRecipientException;
@@ -13,7 +14,6 @@ use Farzai\PromptPay\Exceptions\PromptPayException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class GuestLoanController extends Controller
 {
@@ -36,7 +36,7 @@ class GuestLoanController extends Controller
             ->with([
                 'payments' => fn($q) => $q->where('confirmation_status', 'confirmed'),
                 'group:id,name',
-                'borrower:id,name',
+                'borrower:id,name,avatar',
             ])
             ->orderByDesc('loan_date')
             ->get()
@@ -57,6 +57,7 @@ class GuestLoanController extends Controller
                 'group_name'      => $loan->group?->name,
                 'borrower_id'     => $loan->borrower_id,
                 'borrower_name'   => $loan->borrower?->name,
+                'borrower_avatar' => $loan->borrower?->avatar,
             ]);
 
         return response()->json([
@@ -82,6 +83,7 @@ class GuestLoanController extends Controller
 
         $loan->load([
             'lender:id,name,avatar',
+            'borrower:id,name,line_id',
             'payments' => fn ($q) => $q->with('proofs')->latest('paid_at'),
             'proofs',
         ]);
@@ -99,6 +101,11 @@ class GuestLoanController extends Controller
                 'status'         => $loan->status,
                 'is_overdue'     => $loan->is_overdue,
                 'lender'         => $loan->lender,
+                'borrower'       => $loan->borrower ? [
+                    'id'      => $loan->borrower->id,
+                    'name'    => $loan->borrower->name,
+                    'line_id' => $loan->borrower->line_id,
+                ] : null,
                 'payments'       => $loan->payments,
                 'proofs'         => $loan->proofs,
             ],
@@ -108,7 +115,7 @@ class GuestLoanController extends Controller
     // ============================================================
     //  POST /api/guest/{guest_token}/pay
     //  Guest แจ้งชำระเงิน พร้อมแนบสลิป
-    //  — payment จะอยู่ใน pending จนกว่าเจ้าหนี้จะ confirm
+    //  — payment จะ confirmed ทันที ระบบจะคำนวณยอดค้างอัตโนมัติ
     // ============================================================
 
     public function pay(Request $request): JsonResponse
@@ -129,13 +136,13 @@ class GuestLoanController extends Controller
             'slip'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        // สร้าง payment — status = pending รอเจ้าหนี้ confirm
+        // สร้าง payment — confirmed ทันที ไม่ต้องรอเจ้าหนี้กดยืนยันสลิป
         $payment = $loan->payments()->create([
             'paid_by'              => null,     // guest ไม่มี user_id
             'amount'               => $validated['amount'],
             'paid_at'              => $validated['paid_at'] ?? now(),
             'note'                 => $validated['note'] ?? null,
-            'confirmation_status'  => LoanPayment::STATUS_PENDING,
+            'confirmation_status'  => LoanPayment::STATUS_CONFIRMED,
         ]);
 
         // อัปโหลดสลิปถ้ามี (เก็บเป็น base64 ตามที่ผู้ใช้ต้องการ)
@@ -156,10 +163,47 @@ class GuestLoanController extends Controller
             ]);
         }
 
+        // 🔔 Auto-notify lender via LINE
+        app(LineNotificationService::class)->notifyLenderPaymentReceived($loan, $payment);
+
         return response()->json([
-            'message' => 'แจ้งชำระสำเร็จ รอเจ้าหนี้ยืนยัน',
+            'message' => $request->hasFile('slip')
+                ? 'อ่านสลิปแล้ว บันทึกการชำระสำเร็จ'
+                : 'บันทึกการชำระสำเร็จ',
             'payment' => $payment->load('proofs'),
         ], 201);
+    }
+
+    // ============================================================
+    //  POST /api/guest/{guest_token}/approve
+    //  Guest อนุมัติรายการหนี้
+    // ============================================================
+    public function approve(Request $request): JsonResponse
+    {
+        /** @var Loan $loan */
+        $loan = $request->attributes->get('guest_loan');
+
+        if ($loan->status !== 'pending_approval') {
+            return response()->json([
+                'success' => false,
+                'message' => 'รายการนี้ไม่ได้อยู่ในสถานะรออนุมัติ',
+            ], 422);
+        }
+
+        $loan->update(['status' => Loan::STATUS_ACTIVE]);
+
+        // 🔔 Auto-notify lender via LINE
+        try {
+            app(LineNotificationService::class)->notifyLenderLoanApproved($loan);
+        } catch (\Throwable $e) {
+            Log::error('Line notification for loan approval failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'อนุมัติรายการยืมเงินสำเร็จ',
+            'data' => $loan->fresh(),
+        ]);
     }
 
     // ============================================================
@@ -176,6 +220,15 @@ class GuestLoanController extends Controller
 
         $lender = $loan->lender;
 
+        // Determine which LINE bot to use (always central/system bot)
+        $botInfo = null;
+
+        if (filled(config('services.line.bot_token'))) {
+            $botInfo = cache()->remember('line_bot_info_central', now()->addDay(), function () {
+                return app(\App\Services\LineMessagingService::class)->getBotInfo(config('services.line.bot_token'));
+            });
+        }
+
         return response()->json([
             'lender' => [
                 'id'     => $lender?->id,
@@ -190,6 +243,16 @@ class GuestLoanController extends Controller
             'can_pay_online' => $lender
                 ? ($lender->hasPromptPayConfigured() || filled($lender->slipok_api_key))
                 : false,
+            'line_bot' => $botInfo ? [
+                'has_bot' => true,
+                'basic_id' => $botInfo['basicId'] ?? config('services.line.bot_basic_id'),
+                'display_name' => $botInfo['displayName'] ?? 'PingPay',
+                'picture_url' => $botInfo['pictureUrl'] ?? null,
+                'use_central_bot' => true,
+            ] : [
+                'has_bot' => false,
+                'use_central_bot' => true,
+            ],
         ]);
     }
 

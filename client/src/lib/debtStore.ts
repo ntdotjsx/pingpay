@@ -12,6 +12,7 @@ export interface Debtor {
   colorIndex: number;
   groupId: number | null;
   loanId: number;        // ← loan.id จริงจาก backend (ใช้ confirm/reject payment)
+  avatar?: string | null;
 }
 
 export interface Group {
@@ -53,6 +54,7 @@ export function loanToDebtor(loan: ApiLoan, myUserId: number, index: number): De
     paid,
     colorIndex: index % AVATAR_COLORS.length,
     groupId: loan.group_id,
+    avatar: borrower?.avatar || null,
   };
 }
 

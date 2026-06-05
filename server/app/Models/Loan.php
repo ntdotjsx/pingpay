@@ -21,11 +21,13 @@ use Illuminate\Support\Str;
     'due_date',
     'loan_date',
     'status',
+    'proof_url',
 ])]
 class Loan extends Model
 {
     use HasFactory, SoftDeletes;
 
+    const STATUS_PENDING_APPROVAL = 'pending_approval';
     const STATUS_ACTIVE  = 'active';
     const STATUS_SETTLED = 'settled';
     const STATUS_OVERDUE = 'overdue';

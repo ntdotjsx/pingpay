@@ -1,0 +1,9 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { DashboardApp } from "@/components/dashboard/DashboardApp";
+import { SITE_TITLE, SITE_DESCRIPTION } from "@/consts";
+---
+
+<DashboardLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+  <DashboardApp page="slips" client:only="react" />
+</DashboardLayout>

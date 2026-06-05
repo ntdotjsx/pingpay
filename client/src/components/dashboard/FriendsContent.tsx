@@ -58,6 +58,9 @@ interface Member {
   we_are_creditor?: number;
   we_are_debtor?: number;
   active_loans_count?: number;
+  approval_status?: "pending" | "approved";
+  approval_link?: string | null;
+  avatar?: string | null;
 }
 
 type FilterKey = "all" | "outstanding" | "settled";
@@ -84,50 +87,19 @@ function initials(name: string) {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
 
-function MemberAvatar({ name }: { name: string }) {
+function MemberAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
+  if (avatar) {
+    return (
+      <img
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+        src={avatar}
+        alt={name}
+      />
+    );
+  }
   return (
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
       {initials(name)}
-    </div>
-  );
-}
-
-function SummaryStrip({ members }: { members: Member[] }) {
-  const totalOutstanding = members.reduce(
-    (sum, member) => sum + creditorBalance(member),
-    0,
-  );
-  const outstandingCount = members.filter(
-    (member) => creditorBalance(member) > 0,
-  ).length;
-  const settledCount = members.length - outstandingCount;
-
-  return (
-    <div className="grid gap-2 sm:grid-cols-3">
-      <div className="rounded-xl border border-border/60 bg-foreground p-4 text-background">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-background/60">
-          ยอดค้างรับ
-        </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
-          {fmt(totalOutstanding)}
-        </p>
-      </div>
-      <div className="rounded-xl border border-border/60 bg-background p-4">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-          ลูกหนี้ active
-        </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
-          {outstandingCount}
-        </p>
-      </div>
-      <div className="rounded-xl border border-border/60 bg-background p-4">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-          ไม่มีค้าง
-        </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
-          {settledCount}
-        </p>
-      </div>
     </div>
   );
 }
@@ -151,18 +123,34 @@ function MemberRow({
         ? member.email
         : "ไม่มีช่องทางติดต่อ";
 
+  const copyApprovalLink = () => {
+    if (member.approval_link) {
+      navigator.clipboard.writeText(member.approval_link);
+      toast.success("คัดลอกลิงก์อนุมัติสำเร็จ");
+    }
+  };
+
   return (
     <div className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30">
-      <MemberAvatar name={member.name} />
+      <MemberAvatar name={member.name} avatar={member.avatar} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 flex-wrap">
           <p className="truncate text-sm font-medium text-foreground">
             {member.name}
           </p>
           {manual && (
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0">
               manual
+            </Badge>
+          )}
+          {member.approval_status === "pending" ? (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+              รออนุมัติ LINE
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+              เชื่อม LINE แล้ว
             </Badge>
           )}
         </div>
@@ -197,11 +185,26 @@ function MemberRow({
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
               {member.name}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {member.approval_status === "pending" && member.approval_link && (
+              <DropdownMenuItem className="gap-2 text-amber-600 dark:text-amber-400 font-medium" onClick={copyApprovalLink}>
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                คัดลอกลิงก์อนุมัติ
+              </DropdownMenuItem>
+            )}
             {manual ? (
               <>
                 <DropdownMenuItem
@@ -248,11 +251,15 @@ function MemberFormDialog({
   const [lineId, setLineId] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [createdLink, setCreatedLink] = useState<string>("");
+  const [createdName, setCreatedName] = useState<string>("");
 
   useEffect(() => {
     setName(member?.name ?? "");
     setLineId(member?.line_id ?? "");
     setPhone(member?.phone ?? "");
+    setCreatedLink("");
+    setCreatedName("");
   }, [member, open]);
 
   const save = async () => {
@@ -286,15 +293,67 @@ function MemberFormDialog({
         throw new Error(err.message ?? "บันทึกไม่สำเร็จ");
       }
 
+      const resData = await res.json();
       toast.success(isEdit ? "แก้ไขลูกหนี้แล้ว" : "เพิ่มลูกหนี้แล้ว");
       onSaved();
-      onClose();
+
+      if (!isEdit && resData.data?.approval_link) {
+        setCreatedLink(resData.data.approval_link);
+        setCreatedName(trimmedName);
+      } else {
+        onClose();
+      }
     } catch (error: any) {
       toast.error(error.message ?? "บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
   };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(createdLink);
+    toast.success("คัดลอกลิงก์สำเร็จ");
+  };
+
+  if (createdLink) {
+    return (
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center text-emerald-600 flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              เพิ่มลูกหนี้สำเร็จ
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              เพิ่มลูกหนี้ {createdName} เข้าไปในระบบแล้ว
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground leading-relaxed text-center">
+              กรุณาส่งลิงก์นี้ให้เพื่อนของคุณเปิดเพื่อกดยืนยัน LINE ก่อน เพื่อให้ระบบส่งข้อความทวงเงินหาเพื่อนได้ (หากเพื่อนไม่กดยอมรับ จะไม่สามารถทำรายการยืมเงินกับเพื่อนคนนี้ได้)
+            </p>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={createdLink}
+                className="text-xs select-all bg-muted border-border font-mono h-9"
+              />
+              <Button size="sm" className="h-9 shrink-0" onClick={copyLink}>
+                คัดลอก
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button className="w-full" onClick={onClose}>
+              เสร็จสิ้น
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !saving && onClose()}>
@@ -535,8 +594,6 @@ export function FriendsContent() {
           เพิ่ม
         </Button>
       </div>
-
-      {!loading && <SummaryStrip members={members} />}
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">

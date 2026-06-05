@@ -7,8 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Bot,
-  CheckCircle2,
   KeyRound,
   QrCode,
   ReceiptText,
@@ -34,12 +32,11 @@ function StatusBadge({ active }: { active: boolean }) {
 
 export function ApiKeysContent() {
   const [settings, setSettings] = useState<ApiKeySettings | null>(null);
-  const [lineToken, setLineToken] = useState("");
   const [slipokKey, setSlipokKey] = useState("");
   const [promptpayId, setPromptpayId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<"line" | "slipok" | "promptpay" | null>(null);
+  const [saving, setSaving] = useState<"slipok" | "promptpay" | null>(null);
 
   useEffect(() => {
     api
@@ -53,18 +50,12 @@ export function ApiKeysContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  const saveSection = async (section: "line" | "slipok" | "promptpay") => {
+  const saveSection = async (section: "slipok" | "promptpay") => {
     setSaving(section);
     try {
       let payload: Parameters<typeof api.updateApiKeys>[0] = {};
 
-      if (section === "line") {
-        if (!lineToken.trim()) {
-          toast.error("กรุณาใส่ LINE Bot token");
-          return;
-        }
-        payload = { line_bot_token: lineToken.trim() };
-      } else if (section === "slipok") {
+      if (section === "slipok") {
         if (!slipokKey.trim() && !settings?.slipok.has_api_key) {
           toast.error("กรุณาใส่ SlipOK API key");
           return;
@@ -85,7 +76,6 @@ export function ApiKeysContent() {
       const next = await api.updateApiKeys(payload);
       setSettings(next);
 
-      if (section === "line") setLineToken("");
       if (section === "slipok") {
         setSlipokKey("");
         setBranchId(next.slipok.branch_id ?? "");
@@ -100,20 +90,17 @@ export function ApiKeysContent() {
     }
   };
 
-  const clearSection = async (target: "line" | "slipok" | "promptpay") => {
+  const clearSection = async (target: "slipok" | "promptpay") => {
     setSaving(target);
     try {
       const payload: Parameters<typeof api.updateApiKeys>[0] =
-        target === "line"
-          ? { clear_line_bot_token: true }
-          : target === "slipok"
-            ? { clear_slipok_api_key: true, slipok_branch_id: "" }
-            : { clear_promptpay_id: true };
+        target === "slipok"
+          ? { clear_slipok_api_key: true, slipok_branch_id: "" }
+          : { clear_promptpay_id: true };
 
       const next = await api.updateApiKeys(payload);
       setSettings(next);
 
-      if (target === "line") setLineToken("");
       if (target === "slipok") {
         setSlipokKey("");
         setBranchId("");
@@ -145,7 +132,7 @@ export function ApiKeysContent() {
         <div>
           <h2 className="text-base font-semibold text-foreground">API keys</h2>
           <p className="text-xs text-muted-foreground">
-            เชื่อม LINE Bot, PromptPay และ SlipOK สำหรับงานแจ้งเตือนและตรวจสลิป
+            เชื่อม PromptPay และ SlipOK สำหรับรับชำระเงินและตรวจสลิป
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5 text-xs text-muted-foreground">
@@ -155,62 +142,6 @@ export function ApiKeysContent() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {/* ── LINE Bot ── */}
-        <section className="rounded-xl border border-border/60 bg-background p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                <Bot className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold">LINE Bot token</h3>
-                <p className="text-xs text-muted-foreground">ใช้ส่ง reminder ให้ลูกหนี้ผ่าน LINE</p>
-              </div>
-            </div>
-            <StatusBadge active={!!settings?.line_bot.has_token} />
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {settings?.line_bot.masked_token && (
-              <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Current</p>
-                <p className="mt-0.5 truncate font-mono text-xs">{settings.line_bot.masked_token}</p>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Channel access token</Label>
-              <Input
-                type="password"
-                value={lineToken}
-                onChange={(e) => setLineToken(e.target.value)}
-                placeholder="วาง LINE Messaging API token"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => saveSection("line")}
-                disabled={saving !== null}
-                className="gap-1.5"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                บันทึก
-              </Button>
-              {settings?.line_bot.has_token && (
-                <Button
-                  variant="outline"
-                  onClick={() => clearSection("line")}
-                  disabled={saving !== null}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  ลบ
-                </Button>
-              )}
-            </div>
-          </div>
-        </section>
-
         {/* ── SlipOK ── */}
         <section className="rounded-xl border border-border/60 bg-background p-4">
           <div className="flex items-start justify-between gap-3">

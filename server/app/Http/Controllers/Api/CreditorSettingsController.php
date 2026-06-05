@@ -31,10 +31,6 @@ class CreditorSettingsController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'line_bot' => [
-                    'has_token' => filled($user->line_bot_token),
-                    'masked_token' => $this->maskSecret($user->line_bot_token),
-                ],
                 'slipok' => [
                     'has_api_key' => filled($user->slipok_api_key),
                     'masked_api_key' => $this->maskSecret($user->slipok_api_key),
@@ -53,22 +49,14 @@ class CreditorSettingsController extends Controller
     public function updateApiKeys(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'line_bot_token'    => 'nullable|string|min:20|max:500',
             'slipok_api_key'    => 'nullable|string|min:6|max:255',
             'slipok_branch_id'  => 'nullable|string|max:100',
             'promptpay_id'      => 'nullable|string|min:10|max:15|regex:/^[0-9\- ]+$/',
-            'clear_line_bot_token' => 'sometimes|boolean',
             'clear_slipok_api_key' => 'sometimes|boolean',
             'clear_promptpay_id'   => 'sometimes|boolean',
         ]);
 
         $user = $request->user();
-
-        if ($request->boolean('clear_line_bot_token')) {
-            $user->line_bot_token = null;
-        } elseif (array_key_exists('line_bot_token', $validated) && filled($validated['line_bot_token'])) {
-            $user->line_bot_token = $validated['line_bot_token'];
-        }
 
         if ($request->boolean('clear_slipok_api_key')) {
             $user->slipok_api_key = null;
@@ -215,5 +203,56 @@ class CreditorSettingsController extends Controller
         }
 
         return substr($secret, 0, 4) . str_repeat('*', max(4, $length - 8)) . substr($secret, -4);
+    }
+
+    public function testNotification(Request $request, \App\Services\LineMessagingService $line): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'to_line_id' => 'nullable|string|min:10|max:100',
+        ]);
+
+        $targetLineId = $validated['to_line_id'] ?? $user->line_id;
+
+        if (!filled($targetLineId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบ LINE ID ในการทดสอบ กรุณาระบุ LINE ID ของผู้รับที่ต้องการส่งข้อความทดสอบ',
+            ], 422);
+        }
+
+        $botToken = config('services.line.bot_token');
+
+        if (!filled($botToken)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ระบบยังไม่ได้ตั้งค่า LINE Messaging API token (.env) กรุณาติดต่อผู้ดูแลระบบ',
+            ], 422);
+        }
+
+        try {
+            $message = implode("\n", [
+                '🔔 ทดสอบการแจ้งเตือน PingPay',
+                '',
+                "สวัสดีครับ/ค่ะ!",
+                "นี่คือข้อความทดสอบแจ้งเตือนจากระบบ PingPay ส่งโดยเจ้าหนี้คุณ {$user->name} เพื่อยืนยันว่าการส่งแจ้งเตือนผ่าน LINE ทำงานเรียบร้อยแล้ว",
+                '',
+                '✅ LINE Bot พร้อมใช้งาน',
+            ]);
+
+            $line->pushText($botToken, $targetLineId, $message);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'ส่งข้อความทดสอบไปยัง LINE ID ที่ระบุเรียบร้อยแล้ว กรุณาตรวจสอบห้องแชท',
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('LINE Notification Test Failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'ส่งข้อความล้มเหลว: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

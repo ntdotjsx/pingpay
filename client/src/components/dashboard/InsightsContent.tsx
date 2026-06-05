@@ -103,7 +103,7 @@ export function InsightsContent() {
         <Metric label="ยอดค้างรับ" value={fmt(data.outstanding)} sub={`${data.active_loans_count} รายการ active`} tone="strong" />
         <Metric label="คืนแล้ว" value={fmt(data.recovered)} sub={`${data.recovery_rate}% ของยอดให้ยืม`} />
         <Metric label="เกินกำหนด" value={fmt(data.overdue_amount)} sub="ยอดที่ควรติดตามก่อน" tone="warn" />
-        <Metric label="รอยืนยัน" value={String(data.pending_confirmations)} sub="รายการชำระที่ส่งเข้ามา" />
+        <Metric label="รออ่านสลิป" value={String(data.pending_confirmations)} sub="รายการชำระที่ส่งเข้ามา" />
       </div>
 
       <section className="rounded-xl border border-border/60 bg-background p-4">

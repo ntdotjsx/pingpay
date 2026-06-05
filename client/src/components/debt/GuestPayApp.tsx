@@ -18,6 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import generatePayload from "promptpay-qr";
 import QRCode from "qrcode";
 
+const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
+
 // ──────────────────────────────────────────────
 //  Helpers
 // ──────────────────────────────────────────────
@@ -44,6 +46,23 @@ export default function GuestPayApp() {
   const [info, setInfo] = useState<CheckoutInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+
+  const handleApproveLoan = async () => {
+    setApproving(true);
+    try {
+      await api.guestApproveLoan(token);
+      toast.success("ยืนยันรายการยืมเงินสำเร็จ!");
+      setLoading(true);
+      const res = await api.getGuestLoan(token);
+      setLoan(res);
+    } catch (err: any) {
+      toast.error(err.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setLoading(false);
+      setApproving(false);
+    }
+  };
 
   // ── step ──
   const [step, setStep] = useState<Step>("amount");
@@ -75,6 +94,17 @@ export default function GuestPayApp() {
       setLoading(false);
       return;
     }
+
+    // Check if redirected from LINE bind
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("bind_success") === "true") {
+        toast.success("เชื่อมต่อบัญชี LINE สำเร็จแล้ว!");
+        // Clean up url parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     Promise.all([
       api.getGuestLoan(token),
       api.getCheckoutInfo(token).catch(() => null),
@@ -145,8 +175,8 @@ export default function GuestPayApp() {
   // ──────────────────────────────────────────────
   //  Step: verify slip
   // ──────────────────────────────────────────────
-  const handleVerify = async () => {
-    if (!token || !slip) return;
+  const handleVerify = async (): Promise<SlipVerifyResult | null> => {
+    if (!token || !slip) return null;
     setVerifying(true);
     setVerifyResult(null);
     try {
@@ -157,8 +187,10 @@ export default function GuestPayApp() {
       } else {
         toast.success("สลิปผ่านแล้ว!");
       }
+      return result;
     } catch (e: any) {
       toast.error(e.message ?? "ตรวจสอบสลิปไม่สำเร็จ");
+      return null;
     } finally {
       setVerifying(false);
     }
@@ -171,13 +203,18 @@ export default function GuestPayApp() {
     if (!loan || !token) return;
     setSubmitting(true);
     try {
+      if (canSlipOk && slip && !verifyResult?.verified) {
+        const result = await handleVerify();
+        if (!result?.verified) return;
+      }
+
       await api.guestPay(token, {
         amount,
         note: note || undefined,
         slip: slip || undefined,
       });
       setStep("done");
-      toast.success("แจ้งชำระสำเร็จ รอเจ้าหนี้ยืนยัน");
+      toast.success(slip ? "อ่านสลิปแล้ว บันทึกการชำระสำเร็จ" : "บันทึกการชำระสำเร็จ");
     } catch (e: any) {
       toast.error(e.message ?? "เกิดข้อผิดพลาด");
     } finally {
@@ -209,6 +246,142 @@ export default function GuestPayApp() {
   if (!loan) return null;
 
   const settled = loan.status === "settled";
+  const pendingApproval = loan.status === "pending_approval";
+
+  if (pendingApproval) {
+    const hasProof = !!loan.proofs?.[0] || !!(loan as any).proof_url;
+    const proofUrl = (loan as any).proof_url || (loan.proofs?.[0] ? (loan.proofs[0].file_path === 'base64' ? (loan as any).proof_url : `${API_BASE}${loan.proofs[0].file_path}`) : null);
+    const mimeType = loan.proofs?.[0]?.mime_type ?? "";
+    const isPdf = mimeType === "application/pdf" || (proofUrl && proofUrl.startsWith("data:application/pdf"));
+
+    return (
+      <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {/* Banner */}
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-2xl p-4 flex gap-3 items-start">
+          <div className="bg-amber-500 text-white rounded-xl p-2 shrink-0 flex items-center justify-center w-9 h-9 shadow-sm shadow-amber-500/25">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">รอการอนุมัติรายการหนี้</h3>
+            <p className="text-[11px] opacity-90 leading-relaxed mt-0.5">
+              คุณ {loan.borrower?.name ?? "ลูกหนี้"} โปรดตรวจสอบรายละเอียดและหลักฐานด้านล่าง หากถูกต้อง กรุณากดปุ่ม "ยืนยันรายการยืมเงิน" เพื่อยืนยันข้อมูล
+            </p>
+          </div>
+        </div>
+
+        {/* Lender details */}
+        <div className="bg-background border border-border rounded-2xl p-4 space-y-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <img
+              className="w-12 h-12 rounded-xl object-cover"
+              src={
+                loan.lender.avatar ??
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.lender.name)}&background=random`
+              }
+              alt={loan.lender.name}
+            />
+            <div>
+              <p className="text-xs text-muted-foreground">เจ้าหนี้</p>
+              <h2 className="text-sm font-semibold text-foreground leading-tight">
+                {loan.lender.name}
+              </h2>
+            </div>
+          </div>
+
+          <div className="h-px bg-border/60" />
+
+          {/* Amount details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">ยอดเงินยืม</p>
+              <p className="text-xl font-bold text-foreground mt-0.5">{fmt(parseFloat(loan.amount))}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">วันที่ยืม</p>
+              <p className="text-sm font-semibold text-foreground mt-1">
+                {new Date(loan.loan_date).toLocaleDateString("th-TH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
+
+          {loan.description && (
+            <div>
+              <p className="text-xs text-muted-foreground">หมายเหตุ/รายละเอียด</p>
+              <p className="text-sm text-foreground bg-muted/30 border border-border/50 rounded-xl px-3 py-2 mt-1 leading-relaxed">
+                {loan.description}
+              </p>
+            </div>
+          )}
+
+          {loan.due_date && (
+            <div>
+              <p className="text-xs text-muted-foreground">วันครบกำหนดชำระ</p>
+              <p className="text-sm font-medium text-amber-600 mt-0.5">
+                {new Date(loan.due_date).toLocaleDateString("th-TH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Evidence / Proof Section */}
+        {hasProof && proofUrl && (
+          <div className="bg-background border border-border rounded-2xl p-4 space-y-3 shadow-sm">
+            <p className="text-xs font-semibold text-muted-foreground">หลักฐาน/เอกสารแนบจากเจ้าหนี้</p>
+            <div className="rounded-xl border border-border/70 overflow-hidden bg-muted/10 flex justify-center p-2">
+              {isPdf ? (
+                <a
+                  href={proofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs font-medium text-primary hover:underline py-4"
+                >
+                  📄 ดูเอกสาร PDF (คลิกเพื่อเปิดในแท็บใหม่)
+                </a>
+              ) : (
+                <img
+                  src={proofUrl}
+                  alt="หลักฐานการยืมเงิน"
+                  className="max-h-[350px] w-auto object-contain rounded-lg border border-border/50 shadow-sm"
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action Button */}
+        <div className="space-y-2.5">
+          <Button
+            onClick={handleApproveLoan}
+            disabled={approving}
+            className="w-full h-11 text-sm bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium shadow-md shadow-emerald-500/10 rounded-xl transition-all duration-200"
+            size="lg"
+          >
+            {approving ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                กำลังยืนยัน...
+              </span>
+            ) : (
+              "ยืนยันรายการยืมเงิน"
+            )}
+          </Button>
+          <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
+            * เมื่อกดยืนยัน ระบบจะเริ่มติดตามการชำระเงินและแจ้งเตือนผ่าน LINE
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (step === "done" || settled)
     return (
@@ -220,7 +393,7 @@ export default function GuestPayApp() {
         <p className="text-sm text-muted-foreground">
           {settled
             ? "รายการนี้ปิดแล้ว ขอบคุณที่ชำระครบ"
-            : "รอเจ้าหนี้ยืนยัน — ระบบจะอัปเดตยอดหลังจากนั้น"}
+            : "ระบบอ่านสลิปและอัปเดตยอดให้อัตโนมัติแล้ว"}
         </p>
       </div>
     );
@@ -324,7 +497,7 @@ export default function GuestPayApp() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <p className="text-sm font-medium text-foreground">
-                    จ่ายหมดเลย
+                    ชำระเต็มจำนวน
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {fmt(owed)}
@@ -344,10 +517,10 @@ export default function GuestPayApp() {
                     <line x1="15" y1="15" x2="21" y2="21" />
                   </svg>
                   <p className="text-sm font-medium text-foreground">
-                    ผ่อนจ่าย
+                    ชำระบางส่วน
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    จ่ายบางส่วน
+                    เลือกจำนวนเอง
                   </p>
                 </>
               )}
@@ -359,7 +532,7 @@ export default function GuestPayApp() {
         {mode === "part" && (
           <div className="bg-muted/50 rounded-xl p-3.5 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              จำนวนที่จ่าย
+              จำนวนเงินที่ต้องการชำระ
             </p>
             <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2">
               <span className="text-sm font-medium text-muted-foreground">
@@ -439,7 +612,7 @@ export default function GuestPayApp() {
         {/* QR card */}
         <div className="bg-muted/40 rounded-2xl p-5 flex flex-col items-center gap-4">
           <div className="flex justify-between w-full text-sm">
-            <span className="text-muted-foreground">ยอดที่ต้องชำระ</span>
+            <span className="text-muted-foreground">ยอดชำระ</span>
             <span className="font-bold text-foreground text-base">
               {qrData ? fmt(qrData.amount) : ""}
             </span>
@@ -466,7 +639,7 @@ export default function GuestPayApp() {
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <span className="text-amber-500 text-lg">⏳</span>
           <p className="text-sm text-amber-800">
-            โอนเงินแล้วกด "ชำระแล้ว" เพื่อส่งสลิปยืนยัน
+            เมื่อโอนเงินแล้ว กด "ชำระแล้ว" เพื่อแนบสลิปยืนยัน
           </p>
         </div>
 
@@ -493,7 +666,7 @@ export default function GuestPayApp() {
         {/* amount reminder */}
         <div className="flex justify-between items-center bg-muted/40 rounded-xl px-4 py-3">
           <span className="text-sm text-muted-foreground">
-            จำนวนที่แจ้งชำระ
+            ยอดที่แจ้งชำระ
           </span>
           <span className="font-bold text-foreground">{fmt(amount)}</span>
         </div>
@@ -521,7 +694,7 @@ export default function GuestPayApp() {
             <>
               <span className="text-3xl">📎</span>
               <p className="text-sm font-medium text-foreground">
-                แนบสลิปการโอน
+                อัปโหลดสลิปการโอน
               </p>
               <p className="text-xs text-muted-foreground">
                 JPG, PNG หรือ PDF — สูงสุด 5 MB
@@ -590,20 +763,18 @@ export default function GuestPayApp() {
           className="w-full"
           size="lg"
           onClick={handleSubmit}
-          disabled={
-            submitting || (canSlipOk && slip != null && !verifyResult?.verified)
-          }
+          disabled={submitting || verifying}
         >
-          {submitting
-            ? "กำลังส่ง..."
-            : verifyResult?.verified
-              ? "✅ ยืนยันแจ้งชำระ"
-              : "ส่งแจ้งชำระ (รอเจ้าหนี้ยืนยัน)"}
+          {submitting || verifying
+            ? "กำลังตรวจสอบสลิป..."
+            : slip
+              ? "ตรวจสอบสลิปและบันทึกชำระ"
+              : "บันทึกชำระ"}
         </Button>
 
         {canSlipOk && slip && !verifyResult?.verified && (
           <p className="text-xs text-center text-muted-foreground">
-            กรุณาตรวจสอบสลิปก่อนส่ง หรือส่งโดยไม่ต้องตรวจสอบได้เช่นกัน
+            ระบบจะอ่านสลิปอัตโนมัติเมื่อกดบันทึก
           </p>
         )}
 
