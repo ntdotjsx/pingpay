@@ -31,7 +31,6 @@ steps:
       - cd server
       - cp .env.example .env
       - php artisan key:generate
-      # Wait for the PostgreSQL service to be ready
       - until pg_isready -h database -p 5432 -U postgres; do sleep 1; done
       - php artisan migrate --force
       - php artisan test
@@ -43,6 +42,34 @@ steps:
       - cd client
       - npm install
       - npm run build
+
+  # 4. Deploy to production VM
+  - name: deploy
+    image: appleboy/drone-ssh
+    depends_on:
+      - backend-test
+      - frontend-build
+    when:
+      branch:
+        - main
+      event:
+        - push
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: deploy_ssh_key
+      port: 22
+      script:
+        - cd /var/www/pingpay
+        - git pull origin main
+        - cd server && composer install --no-dev --optimize-autoloader
+        - php artisan migrate --force
+        - cd ../client && npm ci && npm run build
+        - sudo systemctl reload php8.3-fpm
+        - sudo systemctl reload nginx
 
 # Docker services to run during pipeline execution
 services:
