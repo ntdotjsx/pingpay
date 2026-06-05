@@ -1,27 +1,19 @@
-FROM php:8.3-cli-alpine
+FROM php:8.3-fpm-alpine
 
-# Install system dependencies
-RUN apk add --no-cache \
-    libpq-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    nodejs \
-    npm
+RUN apk add --no-cache libpq-dev nginx supervisor && \
+    docker-php-ext-install pdo pdo_pgsql opcache
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_pgsql zip
-
-# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www/server
 
-# Expose Laravel default port
-EXPOSE 8000
+COPY . .
 
-# Start command (install dependencies and serve)
-CMD composer install && php artisan key:generate --ansi && php artisan serve --host=0.0.0.0 --port=8000
+RUN composer install --no-dev --optimize-autoloader && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    chown -R www-data:www-data /var/www/server/storage /var/www/server/bootstrap/cache
+
+EXPOSE 9000
+CMD ["php-fpm"]

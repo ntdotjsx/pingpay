@@ -3,52 +3,38 @@ type: docker
 name: pingpay-pipeline
 
 steps:
-  # 1. Install PHP Composer Dependencies
-  - name: backend-setup
-    image: composer:2
-    volumes:
-      - name: composer-cache
-        path: /tmp/cache
-    commands:
-      - cd server
-      - composer install --no-interaction --prefer-dist --optimize-autoloader
+  # 1. Build และ Push backend image ไป registry
+  - name: build-backend
+    image: plugins/docker
+    settings:
+      repo: 192.168.1.101:5000/pingpay-backend
+      registry: 192.168.1.101:5000
+      insecure: true
+      tags:
+        - latest
+        - ${DRONE_COMMIT_SHA:0:8}
+      dockerfile: server/Dockerfile
+      context: server
 
-  # 2. Run backend migrations and tests with Postgres service
-  - name: backend-test
-    image: php:8.3-alpine
-    depends_on:
-      - backend-setup
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_DATABASE: pingpay_test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres_test_password
-    commands:
-      - apk add --no-cache libpq-dev postgresql-client
-      - docker-php-ext-install pdo pdo_pgsql
-      - cd server
-      - cp .env.example .env
-      - php artisan key:generate
-      - until pg_isready -h database -p 5432 -U postgres; do sleep 1; done
-      - php artisan migrate --force
-      - php artisan test
+  # 2. Build และ Push frontend image ไป registry
+  - name: build-frontend
+    image: plugins/docker
+    settings:
+      repo: 192.168.1.101:5000/pingpay-frontend
+      registry: 192.168.1.101:5000
+      insecure: true
+      tags:
+        - latest
+        - ${DRONE_COMMIT_SHA:0:8}
+      dockerfile: client/Dockerfile
+      context: client
 
-  # 3. Build Astro frontend
-  - name: frontend-build
-    image: node:20-alpine
-    commands:
-      - cd client
-      - npm install
-      - npm run build
-
-  # 4. Deploy to production VM
+  # 3. SSH ไป VM #2 แล้ว pull + deploy
   - name: deploy
     image: appleboy/drone-ssh
     depends_on:
-      - backend-test
-      - frontend-build
+      - build-backend
+      - build-frontend
     when:
       branch:
         - main
@@ -64,22 +50,7 @@ steps:
       port: 22
       script:
         - cd /var/www/pingpay
-        - git pull origin main
-        - cd server && composer install --no-dev --optimize-autoloader
-        - php artisan migrate --force
-        - cd ../client && npm ci && npm run build
-        - sudo systemctl reload php8.3-fpm
-        - sudo systemctl reload nginx
-
-# Docker services to run during pipeline execution
-services:
-  - name: database
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_test_password
-      POSTGRES_DB: pingpay_test
-
-volumes:
-  - name: composer-cache
-    temp: {}
+        - cp /home/deploy/.env.pingpay /var/www/pingpay/.env
+        - docker compose pull
+        - docker compose up -d
+        - docker compose exec backend php artisan migrate --force
