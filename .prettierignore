@@ -1,0 +1,11 @@
+node_modules
+dist
+vendor
+storage
+bootstrap/cache
+.astro
+.vscode
+public/
+package-lock.json
+bun.lock
+composer.lock

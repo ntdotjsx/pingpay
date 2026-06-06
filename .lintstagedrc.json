@@ -1,0 +1,6 @@
+{
+  "**/*.{js,jsx,ts,tsx,astro,css,json,md,html,yaml,yml}": [
+    "bunx prettier --write"
+  ],
+  "server/**/*.php": ["php server/vendor/bin/pint"]
+}
