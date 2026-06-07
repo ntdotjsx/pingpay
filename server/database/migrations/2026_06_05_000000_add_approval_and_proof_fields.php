@@ -28,6 +28,7 @@ return new class extends Migration
 
         // PostgreSQL requires explicit casting from enum to varchar
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE loans DROP CONSTRAINT IF EXISTS loans_status_check');
             DB::statement('ALTER TABLE loans ALTER COLUMN status TYPE VARCHAR(30) USING status::varchar');
             DB::statement("ALTER TABLE loans ALTER COLUMN status SET DEFAULT 'pending_approval'");
         } else {
