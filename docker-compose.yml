@@ -4,36 +4,37 @@ services:
     image: postgres:15-alpine
     container_name: pingpay-db
     environment:
-      POSTGRES_USER: pingpay_user
-      POSTGRES_PASSWORD: pingpay_password
-      POSTGRES_DB: pingpay
+      POSTGRES_USER: ${DB_USERNAME:-pingpay_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pingpay_password}
+      POSTGRES_DB: ${DB_DATABASE:-pingpay}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: always
 
   # 2. Laravel Backend Server
-  server:
+  backend:
     build:
       context: ./server
       dockerfile: Dockerfile
+    image: 192.168.1.101:5000/pingpay-backend:latest
     container_name: pingpay-server
     ports:
-      - "8000:8000"
+      - '8000:8000'
     volumes:
       - ./server:/var/www/html
       - /var/www/html/vendor
     environment:
-      - DB_CONNECTION=pgsql
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_DATABASE=pingpay
-      - DB_USERNAME=pingpay_user
-      - DB_PASSWORD=pingpay_password
-      - APP_KEY=base64:IofuLHWReRrbIgHnkCIu/+EHAFFAB78di69RSqRsx7E=
-      - APP_DEBUG=true
-      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=${DB_CONNECTION:-pgsql}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-pingpay}
+      - DB_USERNAME=${DB_USERNAME:-pingpay_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pingpay_password}
+      - APP_KEY=${APP_KEY:-base64:IofuLHWReRrbIgHnkCIu/+EHAFFAB78di69RSqRsx7E=}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost:8000}
     depends_on:
       - db
     restart: always
@@ -43,17 +44,18 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+    image: 192.168.1.101:5000/pingpay-frontend:latest
     container_name: pingpay-client
     ports:
-      - "4321:4321"
+      - '4321:4321'
     volumes:
       - ./client:/app
       - /app/node_modules
     environment:
-      - FRONTEND_URL=http://localhost:4321
-      - PUBLIC_API_URL=http://localhost:8000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
-      - server
+      - backend
     restart: always
 
 volumes:
