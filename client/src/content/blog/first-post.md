@@ -1,16 +1,94 @@
 ---
 title: 'First post'
-description: 'Lorem ipsum dolor sit amet'
+description: 'คู่มือการสมัครพร้อมเพย์ในแต่ละธนาคารและเชื่อมต่อกับ PingPay'
 pubDate: 'Jul 08 2022'
 heroImage: '../../assets/blog-placeholder-3.jpg'
 ---
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Vitae ultricies leo integer malesuada nunc vel risus commodo viverra. Adipiscing enim eu turpis egestas pretium. Euismod elementum nisi quis eleifend quam adipiscing. In hac habitasse platea dictumst vestibulum. Sagittis purus sit amet volutpat. Netus et malesuada fames ac turpis egestas. Eget magna fermentum iaculis eu non diam phasellus vestibulum lorem. Varius sit amet mattis vulputate enim. Habitasse platea dictumst quisque sagittis. Integer quis auctor elit sed vulputate mi. Dictumst quisque sagittis purus sit amet.
+# คู่มือการใช้งานระบบ PingPay: การสมัครพร้อมเพย์และการเชื่อมต่อระบบ
+**เอกสารภายในองค์กร (Confidential & Proprietary)** **เวอร์ชัน:** 1.1.0 (อัปเดตระบบรูปภาพประกอบ)
 
-Morbi tristique senectus et netus. Id semper risus in hendrerit gravida rutrum quisque non tellus. Habitasse platea dictumst quisque sagittis purus sit amet. Tellus molestie nunc non blandit massa. Cursus vitae congue mauris rhoncus. Accumsan tortor posuere ac ut. Fringilla urna porttitor rhoncus dolor. Elit ullamcorper dignissim cras tincidunt lobortis. In cursus turpis massa tincidunt dui ut ornare lectus. Integer feugiat scelerisque varius morbi enim nunc. Bibendum neque egestas congue quisque egestas diam. Cras ornare arcu dui vivamus arcu felis bibendum. Dignissim suspendisse in est ante in nibh mauris. Sed tempus urna et pharetra pharetra massa massa ultricies mi.
+---
 
-Mollis nunc sed id semper risus in. Convallis a cras semper auctor neque. Diam sit amet nisl suscipit. Lacus viverra vitae congue eu consequat ac felis donec. Egestas integer eget aliquet nibh praesent tristique magna sit amet. Eget magna fermentum iaculis eu non diam. In vitae turpis massa sed elementum. Tristique et egestas quis ipsum suspendisse ultrices. Eget lorem dolor sed viverra ipsum. Vel turpis nunc eget lorem dolor sed viverra. Posuere ac ut consequat semper viverra nam. Laoreet suspendisse interdum consectetur libero id faucibus. Diam phasellus vestibulum lorem sed risus ultricies tristique. Rhoncus dolor purus non enim praesent elementum facilisis. Ultrices tincidunt arcu non sodales neque. Tempus egestas sed sed risus pretium quam vulputate. Viverra suspendisse potenti nullam ac tortor vitae purus faucibus ornare. Fringilla urna porttitor rhoncus dolor purus non. Amet dictum sit amet justo donec enim.
+## บทนำ (Introduction)
+คู่มือฉบับนี้จัดทำขึ้นเพื่อแนะนำขั้นตอนการสมัครบริการ **พร้อมเพย์ (PromptPay)** ของธนาคารพาณิชย์ชั้นนำในประเทศไทย และขั้นตอนการนำบัญชีพร้อมเพย์ดังกล่าวมาเชื่อมต่อเข้ากับระบบ **PingPay** เพื่อรองรับการรับ-จ่ายเงินอย่างมีประสิทธิภาพ ปลอดภัย และเป็นไปตามมาตรฐานการทำธุรกรรมทางการเงิน
 
-Mattis ullamcorper velit sed ullamcorper morbi tincidunt. Tortor posuere ac ut consequat semper viverra. Tellus mauris a diam maecenas sed enim ut sem viverra. Venenatis urna cursus eget nunc scelerisque viverra mauris in. Arcu ac tortor dignissim convallis aenean et tortor at. Curabitur gravida arcu ac tortor dignissim convallis aenean et tortor. Egestas tellus rutrum tellus pellentesque eu. Fusce ut placerat orci nulla pellentesque dignissim enim sit amet. Ut enim blandit volutpat maecenas volutpat blandit aliquam etiam. Id donec ultrices tincidunt arcu. Id cursus metus aliquam eleifend mi.
+---
 
-Tempus quam pellentesque nec nam aliquam sem. Risus at ultrices mi tempus imperdiet. Id porta nibh venenatis cras sed felis eget velit. Ipsum a arcu cursus vitae. Facilisis magna etiam tempor orci eu lobortis elementum. Tincidunt dui ut ornare lectus sit. Quisque non tellus orci ac. Blandit libero volutpat sed cras. Nec tincidunt praesent semper feugiat nibh sed pulvinar proin gravida. Egestas integer eget aliquet nibh praesent tristique magna.
+## ส่วนที่ 1: ขั้นตอนการสมัครพร้อมเพย์ (PromptPay) ของแต่ละธนาคาร
+
+การเชื่อมต่อกับ PingPay จำเป็นต้องใช้บัญชีพร้อมเพย์ที่ผูกกับ **หมายเลขโทรศัพท์มือถือ** หรือ **เลขประจำตัวประชาชน** อย่างใดอย่างหนึ่ง
+
+### 1. ธนาคารกสิกรไทย (KBank)
+สามารถสมัครผ่านแอปพลิเคชัน **K PLUS** ได้ดังนี้:
+1. เปิดแอปพลิเคชัน **K PLUS** และเข้าสู่ระบบ
+2. เลือกเมนู **"บริการอื่น"** (ธุรกรรม) > เลือก **"พร้อมเพย์"**
+3. เลือก **"ลงทะเบียน/แก้ไข"**
+4. เลือกประเภทการผูกบัญชี (ระบุหมายเลขโทรศัพท์มือถือ หรือ เลขบัตรประชาชน)
+5. กดยอมรับเงื่อนไขและยืนยันรหัส OTP เพื่อเสร็จสิ้นขั้นตอน
+
+### 2. ธนาคารไทยพาณิชย์ (SCB)
+สามารถสมัครผ่านแอปพลิเคชัน **SCB EASY** ได้ดังนี้:
+1. เปิดแอปพลิเคชัน **SCB EASY** และเข้าสู่ระบบ
+2. ไปที่เมนู **"การตั้งค่า" (Settings)**
+3. เลือก **"จัดการบริการพร้อมเพย์"**
+4. เลือกหมายเลขที่ต้องการผูก (เบอร์โทรศัพท์ หรือ เลขบัตรประชาชน) และเลือกบัญชีออมทรัพย์ที่ต้องการรองรับ
+5. กดยืนยันข้อตกลงและเงื่อนไข
+
+### 3. ธนาคารกรุงเทพ (Bangkok Bank)
+สามารถสมัครผ่านแอปพลิเคชัน **Bualuang mBanking** ได้ดังนี้:
+1. เปิดแอปพลิเคชัน **Bualuang mBanking** และเข้าสู่ระบบ
+2. เลือกเมนู **"เพิ่มเติม"** > เลือก **"พร้อมเพย์"**
+3. ระบุรหัสผ่าน PIN 6 หลัก
+4. เลือก **"ลงทะเบียน"** และระบุประเภทที่ต้องการผูกบัญชี
+5. ตรวจสอบข้อมูลและกดยืนยัน
+
+### 4. ธนาคารกรุงไทย (Krungthai)
+สามารถสมัครผ่านแอปพลิเคชัน **Krungthai NEXT** ได้ดังนี้:
+1. เปิดแอปพลิเคชัน **Krungthai NEXT** และเข้าสู่ระบบ
+2. เลือกเมนู **"บริการ"** > เลือก **"พร้อมเพย์"**
+3. เลือก **"ลงทะเบียนพร้อมเพย์"**
+4. เลือกประเภท (เลขประจำตัวประชาชน หรือ เบอร์โทรศัพท์มือถือ)
+5. ตรวจสอบรายละเอียดและกด **"ยืนยัน"**
+
+### 5. ธนาคารกรุงศรีอยุธยา (Krungsri)
+สามารถสมัครผ่านแอปพลิเคชัน **KMA (Krungsri Mobile App)** ได้ดังนี้:
+1. เปิดแอปพลิเคชัน **KMA** และเข้าสู่ระบบ
+2. เลือกเมนู **"ตั้งค่า"** > เลือก **"จัดการพร้อมเพย์"**
+3. เลือก **"ลงทะเบียนพร้อมเพย์"**
+4. เลือกประเภทการผูกบัญชีและระบุข้อมูล
+5. กดยืนยันการทำรายการ
+
+---
+
+## ส่วนที่ 2: ขั้นตอนการเชื่อมต่อพร้อมเพย์เข้ากับระบบ PingPay
+
+เมื่อทำการสมัครพร้อมเพย์กับธนาคารเรียบร้อยแล้ว ให้ดำเนินการเชื่อมต่อบัญชีเข้ากับระบบ **PingPay** ตามขั้นตอนดังต่อไปนี้:
+
+### ขั้นตอนที่ 1: เข้าสู่หน้าตั้งค่าบัญชีรับเงิน
+1. เข้าสู่ระบบจัดการของ **PingPay** (Merchant Dashboard)
+2. ไปที่เมนูแถบข้าง (Sidebar) เลือก **"ตั้งค่าระบบ"** หรือ **"ช่องทางการรับเงิน"**
+3. คลิกเลือกปุ่ม **"สมัคร/เชื่อมต่อ พร้อมเพย์"**
+
+### ขั้นตอนที่ 2: กรอกข้อมูลและตรวจสอบความถูกต้อง
+1. **ระบุข้อมูลพร้อมเพย์:** กรอกหมายเลขโทรศัพท์มือถือ หรือ เลขประจำตัวประชาชน ที่ลงทะเบียนพร้อมเพย์ไว้กับธนาคาร
+2. **เลือกธนาคารปลายทาง:** เลือกโลโก้หรือชื่อธนาคารที่ท่านได้ผูกบัญชีไว้ใน *ส่วนที่ 1*
+3. **ตรวจสอบชื่อบัญชี:** ระบบจะทำการดึงข้อมูลเพื่อตรวจสอบ (Validate) ความถูกต้องของชื่อ-นามสกุล เจ้าของบัญชีโดยอัตโนมัติ
+
+### ขั้นตอนที่ 3: การเปิดใช้งานระบบและการรับชำระเงิน (Activation)
+1. เมื่อระบบตรวจสอบข้อมูลเรียบร้อยแล้ว ให้กดปุ่ม **"บันทึกและเปิดใช้งานการรับเงิน"**
+2. ระบบจะทำการสร้างและเชื่อมต่อระบบเข้ากับ **Dynamic QR Code** ของท่านโดยอัตโนมัติ เพื่อใช้ในการสแกนรับเงินจากลูกค้าผ่านหน้าแอปพลิเคชันหรือหน้าร้านค้า
+
+<img src="http://googleusercontent.com/image_collection/image_retrieval/3248025926313162743" alt="ตัวอย่างหน้าจอการแสดงผลระบบรับชำระเงินด้วย PromptPay QR Code บนระบบ PingPay" width="100%">
+*ภาพประกอบที่ 1: ตัวอย่างรูปแบบ Dynamic QR Code หลังจากเชื่อมต่อบัญชีพร้อมเพย์สำเร็จ*
+
+3. ทดลองทำรายการโอนเงินขั้นต่ำ (เช่น 1 บาท) เพื่อตรวจสอบว่ายอดเงินเข้าสู่ระบบ Dashboard ของ PingPay อย่างถูกต้องหรือไม่
+
+---
+
+## ข้อควรระวังและแนวทางความปลอดภัย (Security & Precautions)
+- **ข้อมูลไม่ตรงกัน:** ชื่อ-นามสกุล ของเจ้าของบัญชีพร้อมเพย์ จะต้องตรงกับชื่อผู้ลงทะเบียนเปิดบัญชีใช้งานระบบ PingPay เพื่อป้องกันปัญหาทางกฎหมายและการปฏิเสธการชำระเงิน
+- **การเปลี่ยนแปลงข้อมูล:** หากต้องการเปลี่ยนหมายเลขพร้อมเพย์ที่เชื่อมต่อ กรุณาทำการยกเลิกการเชื่อมต่อเดิมในระบบ PingPay ก่อน แล้วจึงทำการผูกหมายเลขใหม่
+
+---
+*เอกสารนี้เป็นทรัพย์สินทางปัญญาของบริษัท ห้ามมิให้เผยแพร่ คัดลอก หรือดัดแปลงก่อนได้รับอนุญาตเป็นลายลักษณ์อักษร*
