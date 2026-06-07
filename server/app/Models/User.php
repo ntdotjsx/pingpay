@@ -29,13 +29,13 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
             'notification_settings' => 'array',
         ];
     }
@@ -50,7 +50,7 @@ class User extends Authenticatable
      */
     public function hasPromptPayConfigured(): bool
     {
-        return filled($this->promptpay_id) || filled($this->phone);
+        return filled($this->promptpay_id);
     }
 
     /**

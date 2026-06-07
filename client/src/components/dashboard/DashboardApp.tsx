@@ -1,21 +1,27 @@
-import { AuthProvider } from "@/hooks/useAuth";
-import { DashboardGuard } from "@/components/dashboard/DashboardGuard";
-import { DashboardContent } from "@/components/dashboard/DashboardContent";
-import { FriendsContent } from "@/components/dashboard/FriendsContent";
-import { ApiKeysContent } from "@/components/dashboard/ApiKeysContent";
-import { NotificationContent } from "@/components/dashboard/NotificationContent";
-import { InsightsContent } from "@/components/dashboard/InsightsContent";
-import { SlipChecksContent } from "@/components/dashboard/SlipChecksContent";
+import { AuthProvider } from '@/hooks/useAuth';
+import { DashboardGuard } from '@/components/dashboard/DashboardGuard';
+import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { FriendsContent } from '@/components/dashboard/FriendsContent';
+import { PaymentSettingsContent } from '@/components/dashboard/PaymentSettingsContent';
+import { NotificationContent } from '@/components/dashboard/NotificationContent';
+import { InsightsContent } from '@/components/dashboard/InsightsContent';
+import { SlipChecksContent } from '@/components/dashboard/SlipChecksContent';
 
 interface Props {
-  page?: "dashboard" | "friends" | "api-keys" | "notification" | "insights" | "slips";
+  page?:
+    | 'dashboard'
+    | 'friends'
+    | 'payment-settings'
+    | 'notification'
+    | 'insights'
+    | 'slips';
 }
 
-export function DashboardApp({ page = "dashboard" }: Props) {
+export function DashboardApp({ page = 'dashboard' }: Props) {
   const content = {
     dashboard: <DashboardContent />,
     friends: <FriendsContent />,
-    "api-keys": <ApiKeysContent />,
+    'payment-settings': <PaymentSettingsContent />,
     notification: <NotificationContent />,
     insights: <InsightsContent />,
     slips: <SlipChecksContent />,
@@ -23,9 +29,7 @@ export function DashboardApp({ page = "dashboard" }: Props) {
 
   return (
     <AuthProvider>
-      <DashboardGuard>
-        {content}
-      </DashboardGuard>
+      <DashboardGuard>{content}</DashboardGuard>
     </AuthProvider>
   );
 }
