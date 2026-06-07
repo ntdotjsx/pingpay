@@ -2,16 +2,16 @@ kind: pipeline
 type: docker
 name: pingpay-pipeline
 
+trigger:
+  branch:
+    - hello-world
+  event:
+    - push
+
 steps:
-  # 1. Build และ Push backend image ไป registry
   - name: build-backend
     image: plugins/docker
     privileged: true
-    when:
-      branch:
-        - hello-world
-      event:
-        - push
     settings:
       repo: 192.168.1.101:5000/pingpay-backend
       registry: 192.168.1.101:5000
@@ -22,15 +22,9 @@ steps:
       dockerfile: server/Dockerfile
       context: server
 
-  # 2. Build และ Push frontend image ไป registry
   - name: build-frontend
     image: plugins/docker
     privileged: true
-    when:
-      branch:
-        - hello-world
-      event:
-        - push
     settings:
       repo: 192.168.1.101:5000/pingpay-frontend
       registry: 192.168.1.101:5000
@@ -45,17 +39,11 @@ steps:
       custom_labels:
         - 'build=debug'
 
-  # 3. SSH ไป VM #2 แล้ว pull + deploy
   - name: deploy
     image: appleboy/drone-ssh
     depends_on:
       - build-backend
       - build-frontend
-    when:
-      branch:
-        - hello-world
-      event:
-        - push
     settings:
       host:
         from_secret: deploy_host
