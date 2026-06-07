@@ -3,17 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Loan;
 use App\Models\User;
+use App\Models\UserMember;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
     // LINE OAuth endpoints
-    private const AUTH_URL    = 'https://access.line.me/oauth2/v2.1/authorize';
-    private const TOKEN_URL   = 'https://api.line.me/oauth2/v2.1/token';
+    private const AUTH_URL = 'https://access.line.me/oauth2/v2.1/authorize';
+
+    private const TOKEN_URL = 'https://api.line.me/oauth2/v2.1/token';
 
     // -------------------------------------------------------------------------
     // STEP 1 : คืน LINE Login URL ให้ frontend เปิด browser ไปที่ URL นี้
@@ -26,14 +29,14 @@ class AuthController extends Controller
 
         $query = http_build_query([
             'response_type' => 'code',
-            'client_id'     => config('services.line.client_id'),
-            'redirect_uri'  => config('services.line.redirect'),
-            'scope'         => 'profile openid email',
-            'state'         => $state,
+            'client_id' => config('services.line.client_id'),
+            'redirect_uri' => config('services.line.redirect'),
+            'scope' => 'profile openid email',
+            'state' => $state,
         ]);
 
         return response()->json([
-            'url' => self::AUTH_URL . '?' . $query,
+            'url' => self::AUTH_URL.'?'.$query,
         ]);
     }
 
@@ -44,13 +47,13 @@ class AuthController extends Controller
     public function redirectToLineForBind(Request $request)
     {
         $guestToken = $request->query('guest_token');
-        if (!$guestToken) {
+        if (! $guestToken) {
             return response()->json(['message' => 'Missing guest_token.'], 422);
         }
 
         // Validate that loan exists
-        $loan = \App\Models\Loan::where('guest_token', $guestToken)->first();
-        if (!$loan) {
+        $loan = Loan::where('guest_token', $guestToken)->first();
+        if (! $loan) {
             return response()->json(['message' => 'Invalid guest_token.'], 404);
         }
 
@@ -59,14 +62,14 @@ class AuthController extends Controller
 
         $query = http_build_query([
             'response_type' => 'code',
-            'client_id'     => config('services.line.client_id'),
-            'redirect_uri'  => config('services.line.redirect'),
-            'scope'         => 'profile openid email',
-            'state'         => $state,
+            'client_id' => config('services.line.client_id'),
+            'redirect_uri' => config('services.line.redirect'),
+            'scope' => 'profile openid email',
+            'state' => $state,
         ]);
 
         return response()->json([
-            'url' => self::AUTH_URL . '?' . $query,
+            'url' => self::AUTH_URL.'?'.$query,
         ]);
     }
 
@@ -77,12 +80,12 @@ class AuthController extends Controller
     public function redirectToLineForApproveFriend(Request $request)
     {
         $token = $request->query('token');
-        if (!$token) {
+        if (! $token) {
             return response()->json(['message' => 'Missing approval token.'], 422);
         }
 
-        $friendMember = \App\Models\UserMember::where('approval_token', $token)->first();
-        if (!$friendMember) {
+        $friendMember = UserMember::where('approval_token', $token)->first();
+        if (! $friendMember) {
             return response()->json(['message' => 'Invalid approval token.'], 404);
         }
 
@@ -91,30 +94,30 @@ class AuthController extends Controller
 
         $query = http_build_query([
             'response_type' => 'code',
-            'client_id'     => config('services.line.client_id'),
-            'redirect_uri'  => config('services.line.redirect'),
-            'scope'         => 'profile openid email',
-            'state'         => $state,
+            'client_id' => config('services.line.client_id'),
+            'redirect_uri' => config('services.line.redirect'),
+            'scope' => 'profile openid email',
+            'state' => $state,
         ]);
 
         return response()->json([
-            'url' => self::AUTH_URL . '?' . $query,
+            'url' => self::AUTH_URL.'?'.$query,
         ]);
     }
 
     // -------------------------------------------------------------------------
-    //ดึงข้อมูลสำหรับการอนุมัติเป็นเพื่อน
+    // ดึงข้อมูลสำหรับการอนุมัติเป็นเพื่อน
     // GET /api/approve-friend/{token}/info
     // -------------------------------------------------------------------------
     public function getApproveFriendInfo(string $token)
     {
-        $friendMember = \App\Models\UserMember::where('approval_token', $token)->first();
-        if (!$friendMember) {
+        $friendMember = UserMember::where('approval_token', $token)->first();
+        if (! $friendMember) {
             return response()->json(['success' => false, 'message' => 'Invalid approval token.'], 404);
         }
 
-        $owner = \App\Models\User::find($friendMember->owner_id);
-        $member = \App\Models\User::find($friendMember->member_id);
+        $owner = User::find($friendMember->owner_id);
+        $member = User::find($friendMember->member_id);
 
         return response()->json([
             'success' => true,
@@ -132,11 +135,11 @@ class AuthController extends Controller
     // -------------------------------------------------------------------------
     public function handleLineCallback(Request $request)
     {
-        $code  = $request->query('code');
+        $code = $request->query('code');
         $state = $request->query('state');
 
         // --- ตรวจ state ---
-        if (!$code || !$state) {
+        if (! $code || ! $state) {
             return response()->json(['message' => 'Invalid state or missing code.'], 422);
         }
 
@@ -151,16 +154,16 @@ class AuthController extends Controller
         } elseif (Cache::has("line_approve_friend_{$state}")) {
             $approveFriendToken = Cache::pull("line_approve_friend_{$state}");
             $isApproveFriend = true;
-        } elseif (!Cache::pull("line_state_{$state}")) {
+        } elseif (! Cache::pull("line_state_{$state}")) {
             return response()->json(['message' => 'Invalid state or missing code.'], 422);
         }
 
         // --- แลก code เป็น access_token ---
         $tokenResponse = Http::withoutVerifying()->asForm()->post(self::TOKEN_URL, [
-            'grant_type'    => 'authorization_code',
-            'code'          => $code,
-            'redirect_uri'  => config('services.line.redirect'),
-            'client_id'     => config('services.line.client_id'),
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => config('services.line.redirect'),
+            'client_id' => config('services.line.client_id'),
             'client_secret' => config('services.line.client_secret'),
         ]);
 
@@ -180,10 +183,10 @@ class AuthController extends Controller
         $frontendUrl = config('app.frontend_url', 'http://localhost:4321');
 
         if ($isApproveFriend) {
-            $friendMember = \App\Models\UserMember::where('approval_token', $approveFriendToken)->first();
+            $friendMember = UserMember::where('approval_token', $approveFriendToken)->first();
             if ($friendMember) {
-                $manualUser = \App\Models\User::find($friendMember->member_id);
-                $existingUser = \App\Models\User::where('line_id', $profile->sub)->first();
+                $manualUser = User::find($friendMember->member_id);
+                $existingUser = User::where('line_id', $profile->sub)->first();
 
                 if ($existingUser) {
                     // Point the friendship relation to the existing real user
@@ -214,11 +217,11 @@ class AuthController extends Controller
 
         if ($isBind) {
             // Find the loan and update borrower's line_id
-            $loan = \App\Models\Loan::where('guest_token', $guestToken)->first();
+            $loan = Loan::where('guest_token', $guestToken)->first();
             if ($loan && $loan->borrower) {
                 $borrower = $loan->borrower;
                 $borrower->line_id = $profile->sub;
-                
+
                 // If borrower has default auto-generated manual email, let's also update avatar if they have one
                 if ($profile->picture ?? null) {
                     $borrower->avatar = $profile->picture;
@@ -234,10 +237,10 @@ class AuthController extends Controller
         $user = User::updateOrCreate(
             ['line_id' => $profile->sub],
             [
-                'name'   => $profile->name    ?? 'LINE User',
-                'email'  => !empty($profile->email)
+                'name' => $profile->name ?? 'LINE User',
+                'email' => ! empty($profile->email)
                                 ? $profile->email
-                                : 'line_' . $profile->sub . '@line.local',
+                                : 'line_'.$profile->sub.'@line.local',
                 'avatar' => $profile->picture ?? null,
             ]
         );
@@ -252,11 +255,11 @@ class AuthController extends Controller
                 $accessToken,            // value
                 60 * 24 * 7,             // minutes (7 วัน)
                 '/',                     // path
-                null,                    // domain
-                app()->isProduction(),   // secure (HTTPS เฉพาะ production)
+                config('session.domain'), // domain
+                config('session.secure', request()->isSecure()), // secure (HTTPS เฉพาะ production)
                 true,                    // httpOnly — JS อ่านไม่ได้ ✓
                 false,                   // raw
-                'Lax'                    // sameSite
+                config('session.same_site', 'lax') // sameSite
             );
     }
 
@@ -277,7 +280,13 @@ class AuthController extends Controller
 
         return response()
             ->json(['message' => 'Logged out successfully.'])
-            ->withoutCookie('access_token');
+            ->withoutCookie(
+                'access_token',
+                '/',
+                config('session.domain'),
+                config('session.secure', request()->isSecure()),
+                config('session.same_site', 'lax')
+            );
     }
 
     // -------------------------------------------------------------------------

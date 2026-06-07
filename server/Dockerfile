@@ -10,8 +10,6 @@ WORKDIR /var/www/server
 COPY . .
 
 RUN composer install --no-dev --optimize-autoloader && \
-    php artisan config:cache && \
-    php artisan route:cache && \
     chown -R www-data:www-data /var/www/server/storage /var/www/server/bootstrap/cache
 
 EXPOSE 9000
