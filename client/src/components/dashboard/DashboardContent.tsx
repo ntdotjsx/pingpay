@@ -44,8 +44,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 const API_BASE = import.meta.env.PUBLIC_API_URL ?? '';
 
@@ -977,11 +977,10 @@ function LoanDetailModal({
     setConfirmingId(paymentId);
     try {
       await api.confirmPayment(loan.id, paymentId);
-      toast.success('ยืนยันการชำระสำเร็จ');
       setPendingPayments((p) => p.filter((x) => x.id !== paymentId));
       onUpdated();
     } catch (e: any) {
-      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
+      console.error(e);
     } finally {
       setConfirmingId(null);
     }
@@ -991,10 +990,9 @@ function LoanDetailModal({
     setRejectingId(paymentId);
     try {
       await api.rejectPayment(loan.id, paymentId);
-      toast('ปฏิเสธการชำระแล้ว');
       setPendingPayments((p) => p.filter((x) => x.id !== paymentId));
     } catch (e: any) {
-      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
+      console.error(e);
     } finally {
       setRejectingId(null);
     }
@@ -1005,9 +1003,8 @@ function LoanDetailModal({
     try {
       const { guest_link } = await api.getGuestLink(loan.id);
       await navigator.clipboard.writeText(guest_link);
-      toast.success('คัดลอก link แล้ว');
-    } catch {
-      toast.error('คัดลอกไม่สำเร็จ');
+    } catch (e) {
+      console.error(e);
     } finally {
       setTimeout(() => setCopying(false), 1500);
     }
@@ -1018,11 +1015,10 @@ function LoanDetailModal({
     setDeleting(true);
     try {
       await api.deleteLoan(loan.id);
-      toast.success('ลบรายการสำเร็จ');
       onUpdated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? 'ลบไม่สำเร็จ');
+      console.error(e);
     } finally {
       setDeleting(false);
     }
@@ -1255,6 +1251,21 @@ function AddLoanModal({
   const [proofUrl, setProofUrl] = useState('');
   const [proofName, setProofName] = useState('');
 
+  // Friend addition states
+  const [friendName, setFriendName] = useState('');
+  const [friendSaving, setFriendSaving] = useState(false);
+  const [friendCreatedLink, setFriendCreatedLink] = useState('');
+  const [friendCreatedName, setFriendCreatedName] = useState('');
+
+  // Validation states
+  const [borrowerError, setBorrowerError] = useState(false);
+  const [amountError, setAmountError] = useState(false);
+  const [proofError, setProofError] = useState(false);
+  const [tripNameError, setTripNameError] = useState(false);
+  const [amountPerPersonError, setAmountPerPersonError] = useState(false);
+  const [friendNameError, setFriendNameError] = useState(false);
+  const [membersError, setMembersError] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     setMembersLoading(true);
@@ -1279,6 +1290,20 @@ function AddLoanModal({
     setManualName('');
     setProofUrl('');
     setProofName('');
+    // Reset friend states
+    setFriendName('');
+    setFriendSaving(false);
+    setFriendCreatedLink('');
+    setFriendCreatedName('');
+
+    // Reset validation errors
+    setBorrowerError(false);
+    setAmountError(false);
+    setProofError(false);
+    setTripNameError(false);
+    setAmountPerPersonError(false);
+    setFriendNameError(false);
+    setMembersError(false);
   };
 
   const handleClose = () => {
@@ -1299,19 +1324,25 @@ function AddLoanModal({
   };
 
   const handleSubmitSingle = async () => {
+    let hasErr = false;
     if (!borrowerId) {
-      toast.error('กรุณาเลือกลูกหนี้');
-      return;
+      setBorrowerError(true);
+      hasErr = true;
     }
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) {
-      toast.error('กรุณาใส่จำนวนเงิน');
-      return;
+      setAmountError(true);
+      hasErr = true;
     }
     if (!proofUrl) {
-      toast.error('กรุณาแนบหลักฐาน (รูปสลิปหรือสัญญา)');
+      setProofError(true);
+      hasErr = true;
+    }
+
+    if (hasErr) {
       return;
     }
+
     setLoading(true);
     try {
       await api.createLoan({
@@ -1321,12 +1352,11 @@ function AddLoanModal({
         due_date: dueDate || undefined,
         proof_url: proofUrl,
       });
-      toast.success('เพิ่มรายการสำเร็จ (รอเพื่อนกดยอมรับ)');
       reset();
       onCreated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -1344,6 +1374,7 @@ function AddLoanModal({
       { id: `u${m.id}`, name: m.name, user_id: m.id },
     ]);
     setMemberSearch('');
+    setMembersError(false);
   };
 
   const addManual = () => {
@@ -1351,26 +1382,33 @@ function AddLoanModal({
     if (!n) return;
     setTripMembers((p) => [...p, { id: `m${Date.now()}`, name: n }]);
     setManualName('');
+    setMembersError(false);
   };
 
   const handleSubmitGroup = async () => {
+    let hasErr = false;
     if (!tripName.trim()) {
-      toast.error('กรุณาใส่ชื่อทริป');
-      return;
+      setTripNameError(true);
+      hasErr = true;
     }
     const amt = parseFloat(amountPerPerson);
     if (!amt || amt <= 0) {
-      toast.error('กรุณาใส่ยอดคนละ');
-      return;
+      setAmountPerPersonError(true);
+      hasErr = true;
     }
     if (tripMembers.length === 0) {
-      toast.error('กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน');
-      return;
+      setMembersError(true);
+      hasErr = true;
     }
     if (!proofUrl) {
-      toast.error('กรุณาแนบหลักฐาน (รูปใบเสร็จ/สลิปของกลุ่ม)');
+      setProofError(true);
+      hasErr = true;
+    }
+
+    if (hasErr) {
       return;
     }
+
     setLoading(true);
     try {
       await api.createGroup({
@@ -1380,16 +1418,55 @@ function AddLoanModal({
         members: tripMembers.map((m) => ({ name: m.name, user_id: m.user_id })),
         proof_url: proofUrl,
       });
-      toast.success(
-        `สร้างทริป "${tripName}" สำเร็จ! (รอเพื่อนแต่ละคนกดยอมรับ)`,
-      );
       reset();
       onCreated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? 'สร้างกลุ่มไม่สำเร็จ');
+      console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveFriend = async () => {
+    const trimmedName = friendName.trim();
+    if (!trimmedName) {
+      setFriendNameError(true);
+      return;
+    }
+    setFriendSaving(true);
+    try {
+      const data = await api.createMember({
+        name: trimmedName,
+      });
+      if (data && (data as any).approval_link) {
+        setFriendCreatedLink((data as any).approval_link);
+        setFriendCreatedName(trimmedName);
+      } else {
+        setMembersLoading(true);
+        const updatedMembers = await api.getMembers();
+        setMembers(updatedMembers);
+        setMembersLoading(false);
+      }
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setFriendSaving(false);
+    }
+  };
+
+  const handleContinueToLoan = async () => {
+    setMembersLoading(true);
+    try {
+      const updatedMembers = await api.getMembers();
+      setMembers(updatedMembers);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setMembersLoading(false);
+      setFriendName('');
+      setFriendCreatedLink('');
+      setFriendCreatedName('');
     }
   };
 
@@ -1399,6 +1476,157 @@ function AddLoanModal({
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       (m.email ?? '').toLowerCase().includes(search.toLowerCase()),
   );
+
+  if (open && membersLoading) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+        <DialogContent className="max-h-[92vh] max-w-sm overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>กำลังโหลดข้อมูล...</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-6 text-center">
+            <div className="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
+            <p className="text-muted-foreground text-xs">
+              กำลังดึงข้อมูลรายชื่อเพื่อน...
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (open && members.length === 0) {
+    if (friendCreatedLink) {
+      return (
+        <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+          <DialogContent className="max-h-[92vh] max-w-sm overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-emerald-600">
+                <svg
+                  className="h-5 w-5 text-emerald-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                เพิ่มเพื่อนสำเร็จ
+              </DialogTitle>
+              <DialogDescription>
+                เพิ่มเพื่อน {friendCreatedName} เข้าไปในระบบแล้ว
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                กรุณาส่งลิงก์นี้ให้เพื่อนของคุณเปิดเพื่อกดยืนยัน LINE ก่อน
+                เพื่อให้ระบบส่งข้อความทวงเงินหาเพื่อนได้ (หากเพื่อนไม่กดยอมรับ
+                จะไม่สามารถทำรายการยืมเงินกับเพื่อนคนนี้ได้)
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={friendCreatedLink}
+                  className="bg-muted border-border h-9 font-mono text-xs select-all"
+                />
+                <Button
+                  size="sm"
+                  className="h-9 shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(friendCreatedLink);
+                  }}
+                >
+                  คัดลอก
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button className="w-full" onClick={handleContinueToLoan}>
+                ทำรายการยืมเงินต่อ
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
+
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+        <DialogContent className="max-h-[92vh] max-w-sm overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <svg
+                className="text-primary h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+              เพิ่มเพื่อนใหม่ก่อนเริ่มทำรายการ
+            </DialogTitle>
+            <DialogDescription>
+              คุณยังไม่มีรายชื่อเพื่อนในระบบ กรุณาเพิ่มเพื่อนอย่างน้อย 1
+              คนเพื่อดำเนินการต่อ
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <label className="text-muted-foreground text-xs font-semibold">
+                ชื่อเพื่อน *
+              </label>
+              <Input
+                value={friendName}
+                onChange={(e) => {
+                  setFriendName(e.target.value);
+                  setFriendNameError(false);
+                }}
+                placeholder="เช่น สมชาย, บอย"
+                autoFocus
+                aria-invalid={friendNameError}
+                className=""
+              />
+              {friendNameError && (
+                <p className="text-destructive mt-1 text-[11px] font-medium">
+                  ⚠️ กรุณากรอกชื่อเพื่อน
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={handleClose}
+              disabled={friendSaving}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleSaveFriend}
+              disabled={friendSaving || !friendName.trim()}
+            >
+              {friendSaving ? 'กำลังบันทึก...' : 'บันทึกเพื่อน'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
@@ -1456,9 +1684,16 @@ function AddLoanModal({
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setBorrowerId('');
+                  setBorrowerError(false);
                 }}
+                aria-invalid={borrowerError}
                 className="mb-1.5"
               />
+              {borrowerError && (
+                <p className="text-destructive mt-1 text-[11px] font-medium">
+                  ⚠️ กรุณาเลือกลูกหนี้
+                </p>
+              )}
               {membersLoading ? (
                 <Skeleton className="h-10 rounded-lg" />
               ) : (
@@ -1510,7 +1745,12 @@ function AddLoanModal({
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 จำนวนเงิน (บาท) *
               </p>
-              <div className="border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2">
+              <div
+                className={cn(
+                  'border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2 transition-[color,box-shadow]',
+                  amountError && 'border-destructive ring-destructive ring-1',
+                )}
+              >
                 <span className="text-muted-foreground text-sm font-medium">
                   ฿
                 </span>
@@ -1518,10 +1758,18 @@ function AddLoanModal({
                   type="number"
                   placeholder="0"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setAmountError(false);
+                  }}
                   className="h-auto border-0 bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
                 />
               </div>
+              {amountError && (
+                <p className="text-destructive mt-1 text-[11px] font-medium">
+                  ⚠️ กรุณาใส่จำนวนเงินที่ถูกต้อง (มากกว่า 0 บาท)
+                </p>
+              )}
             </div>
             <div>
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
@@ -1548,11 +1796,20 @@ function AddLoanModal({
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 หลักฐานการยืมเงิน (รูปสลิปหรือสัญญา) *
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div
+                className={cn(
+                  'flex flex-col gap-1.5 transition-[color,box-shadow]',
+                  proofError &&
+                    'border-destructive ring-destructive rounded-xl border p-2 ring-1',
+                )}
+              >
                 <Input
                   type="file"
                   accept="image/*,application/pdf"
-                  onChange={handleFileChange}
+                  onChange={(e) => {
+                    handleFileChange(e);
+                    setProofError(false);
+                  }}
                   className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer text-xs file:mr-2 file:rounded file:border-0 file:px-2 file:py-1 file:text-xs file:font-semibold"
                 />
                 {proofName && (
@@ -1560,23 +1817,51 @@ function AddLoanModal({
                     📎 {proofName} (แนบแล้ว)
                   </p>
                 )}
+                {proofError && (
+                  <p className="text-destructive mt-1 text-[11px] font-medium">
+                    ⚠️ กรุณาแนบหลักฐาน (รูปสลิปหรือสัญญา)
+                  </p>
+                )}
               </div>
             </div>
-            <div className="flex gap-2 pt-1">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleClose}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleSubmitSingle}
-                disabled={loading}
-              >
-                {loading ? 'กำลังบันทึก...' : 'บันทึก'}
-              </Button>
+            <div className="space-y-2 pt-2">
+              {(!borrowerId ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                !proofUrl) && (
+                <p className="text-center text-xs font-medium text-rose-500">
+                  *{' '}
+                  {!borrowerId
+                    ? 'กรุณาเลือกผู้ยืม'
+                    : !amount || parseFloat(amount) <= 0
+                      ? 'กรุณากรอกยอดเงินให้ถูกต้อง'
+                      : !proofUrl
+                        ? 'กรุณาแนบหลักฐานการโอนเงิน'
+                        : ''}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleClose}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSubmitSingle}
+                  disabled={
+                    loading ||
+                    !borrowerId ||
+                    !amount ||
+                    parseFloat(amount) <= 0 ||
+                    !proofUrl
+                  }
+                >
+                  {loading ? 'กำลังบันทึก...' : 'บันทึก'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1590,14 +1875,30 @@ function AddLoanModal({
               <Input
                 placeholder="เช่น ทริปเชียงใหม่ มีค. 68"
                 value={tripName}
-                onChange={(e) => setTripName(e.target.value)}
+                onChange={(e) => {
+                  setTripName(e.target.value);
+                  setTripNameError(false);
+                }}
+                aria-invalid={tripNameError}
+                className=""
               />
+              {tripNameError && (
+                <p className="text-destructive mt-1 text-[11px] font-medium">
+                  ⚠️ กรุณากรอกชื่อทริป / งาน
+                </p>
+              )}
             </div>
             <div>
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 ยอดคนละ (บาท) *
               </p>
-              <div className="border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2">
+              <div
+                className={cn(
+                  'border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2 transition-[color,box-shadow]',
+                  amountPerPersonError &&
+                    'border-destructive ring-destructive ring-1',
+                )}
+              >
                 <span className="text-muted-foreground text-sm font-medium">
                   ฿
                 </span>
@@ -1605,10 +1906,18 @@ function AddLoanModal({
                   type="number"
                   placeholder="0"
                   value={amountPerPerson}
-                  onChange={(e) => setAmountPerPerson(e.target.value)}
+                  onChange={(e) => {
+                    setAmountPerPerson(e.target.value);
+                    setAmountPerPersonError(false);
+                  }}
                   className="h-auto border-0 bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
                 />
               </div>
+              {amountPerPersonError && (
+                <p className="text-destructive mt-1 text-[11px] font-medium">
+                  ⚠️ กรุณากรอกยอดเงินต่อคน
+                </p>
+              )}
             </div>
             <div>
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
@@ -1624,16 +1933,30 @@ function AddLoanModal({
               <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 หลักฐานการจ่ายเงิน (รูปใบเสร็จหรือสลิปกลุ่ม) *
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div
+                className={cn(
+                  'flex flex-col gap-1.5 transition-[color,box-shadow]',
+                  proofError &&
+                    'border-destructive ring-destructive rounded-xl border p-2 ring-1',
+                )}
+              >
                 <Input
                   type="file"
                   accept="image/*,application/pdf"
-                  onChange={handleFileChange}
+                  onChange={(e) => {
+                    handleFileChange(e);
+                    setProofError(false);
+                  }}
                   className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer text-xs file:mr-2 file:rounded file:border-0 file:px-2 file:py-1 file:text-xs file:font-semibold"
                 />
                 {proofName && (
                   <p className="truncate text-[10px] font-medium text-emerald-600">
                     📎 {proofName} (แนบแล้ว)
+                  </p>
+                )}
+                {proofError && (
+                  <p className="text-destructive mt-1 text-[11px] font-medium">
+                    ⚠️ กรุณาแนบภาพถ่ายหลักฐานการโอนเงิน/ใบเสร็จ
                   </p>
                 )}
               </div>
@@ -1690,6 +2013,11 @@ function AddLoanModal({
                 + เพิ่ม
               </Button>
             </div>
+            {membersError && (
+              <p className="text-destructive mt-1 text-[11px] font-medium">
+                ⚠️ กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน
+              </p>
+            )}
             {tripMembers.length > 0 && (
               <div className="bg-muted/30 overflow-hidden rounded-xl">
                 <div className="border-border/50 flex items-center justify-between border-b px-3 py-1.5">
@@ -1744,21 +2072,48 @@ function AddLoanModal({
                 ))}
               </div>
             )}
-            <div className="flex gap-2 pt-1">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleClose}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleSubmitGroup}
-                disabled={loading}
-              >
-                {loading ? 'กำลังสร้าง...' : '✓ สร้างทริป'}
-              </Button>
+            <div className="space-y-2 pt-2">
+              {(!tripName.trim() ||
+                !amountPerPerson ||
+                parseFloat(amountPerPerson) <= 0 ||
+                tripMembers.length === 0 ||
+                !proofUrl) && (
+                <p className="text-center text-xs font-medium text-rose-500">
+                  *{' '}
+                  {!tripName.trim()
+                    ? 'กรุณากรอกชื่อทริป'
+                    : !amountPerPerson || parseFloat(amountPerPerson) <= 0
+                      ? 'กรุณากรอกยอดเงินต่อคน'
+                      : tripMembers.length === 0
+                        ? 'กรุณาเพิ่มสมาชิก'
+                        : !proofUrl
+                          ? 'กรุณาแนบหลักฐานการโอนเงิน'
+                          : ''}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleClose}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSubmitGroup}
+                  disabled={
+                    loading ||
+                    !tripName.trim() ||
+                    !amountPerPerson ||
+                    parseFloat(amountPerPerson) <= 0 ||
+                    tripMembers.length === 0 ||
+                    !proofUrl
+                  }
+                >
+                  {loading ? 'กำลังสร้าง...' : '✓ สร้างทริป'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1808,7 +2163,7 @@ export function DashboardContent() {
       });
       setPendingMap(map);
     } catch {
-      toast.error('โหลดข้อมูลไม่สำเร็จ');
+      console.error('โหลดข้อมูลไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
@@ -1828,9 +2183,6 @@ export function DashboardContent() {
 
   const handleOpenAdd = () => {
     if (hasPromptPay === false) {
-      toast.error(
-        'กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มรายการยืมเงิน',
-      );
       return;
     }
     setShowAdd(true);
@@ -2001,7 +2353,12 @@ export function DashboardContent() {
             </Hint>
           ))}
         </div>
-        <div className="flex gap-2 sm:justify-end">
+        <div className="flex items-center gap-2 sm:justify-end">
+          {hasPromptPay === false && (
+            <span className="text-[11px] font-medium whitespace-nowrap text-rose-500">
+              ⚠️ ตั้งค่า PromptPay ก่อน
+            </span>
+          )}
           <Hint label="เปิดปฏิทินครบกำหนด">
             <Button
               onClick={() => setShowCalendar(true)}
@@ -2027,6 +2384,7 @@ export function DashboardContent() {
               onClick={handleOpenAdd}
               size="sm"
               className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+              disabled={hasPromptPay === false}
             >
               <svg
                 className="h-3 w-3"
@@ -2057,14 +2415,23 @@ export function DashboardContent() {
                   : 'ยังไม่มีรายการที่ชำระครบ'}
               </p>
               {tab === 'active' && (
-                <Hint label="สร้างรายการหนี้รายการแรก">
-                  <button
-                    onClick={handleOpenAdd}
-                    className="text-primary mt-3 text-xs underline underline-offset-2"
-                  >
-                    + เพิ่มรายการแรก
-                  </button>
-                </Hint>
+                <div className="mt-3 flex flex-col items-center gap-1">
+                  <Hint label="สร้างรายการหนี้รายการแรก">
+                    <Button
+                      variant="link"
+                      onClick={handleOpenAdd}
+                      disabled={hasPromptPay === false}
+                      className="text-primary text-xs underline underline-offset-2"
+                    >
+                      + เพิ่มรายการแรก
+                    </Button>
+                  </Hint>
+                  {hasPromptPay === false && (
+                    <span className="text-[11px] font-medium text-rose-500">
+                      ⚠️ กรุณาตั้งค่า PromptPay ในหน้าตั้งค่าก่อนสร้างรายการหนี้
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           );

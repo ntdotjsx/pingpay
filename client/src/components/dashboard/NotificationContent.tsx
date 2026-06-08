@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+
 import {
   Bell,
   Clock3,
@@ -67,16 +67,16 @@ export function NotificationContent() {
     api
       .getNotificationSettings()
       .then(setSettings)
-      .catch(() => toast.error('โหลดการแจ้งเตือนไม่สำเร็จ'))
+      .catch(() => console.error('โหลดการแจ้งเตือนไม่สำเร็จ'))
       .finally(() => setLoading(false));
   }, []);
 
   const update = <K extends keyof NotificationSettings>(
     key: K,
-    value: NotificationSettings[K]
+    value: NotificationSettings[K],
   ) => {
     setSettings((current) =>
-      current ? { ...current, [key]: value } : current
+      current ? { ...current, [key]: value } : current,
     );
   };
 
@@ -86,9 +86,8 @@ export function NotificationContent() {
     try {
       const next = await api.updateNotificationSettings(settings);
       setSettings(next);
-      toast.success('บันทึกการแจ้งเตือนแล้ว');
     } catch (e: any) {
-      toast.error(e.message ?? 'บันทึกไม่สำเร็จ');
+      console.error(e.message ?? 'บันทึกไม่สำเร็จ');
     } finally {
       setSaving(false);
     }
@@ -101,16 +100,12 @@ export function NotificationContent() {
   });
 
   const handleTest = async () => {
-    if (!testLineId.trim()) {
-      toast.error('กรุณาระบุ LINE ID ที่ต้องการส่งข้อความทดสอบ');
-      return;
-    }
+    if (!testLineId.trim()) return;
     setTesting(true);
     try {
-      const res = await api.testNotification(testLineId.trim());
-      toast.success(res.message);
+      await api.testNotification(testLineId.trim());
     } catch (e: any) {
-      toast.error(e.message ?? 'ส่งข้อความทดสอบล้มเหลว');
+      console.error(e.message ?? 'ส่งข้อความทดสอบล้มเหลว');
     } finally {
       setTesting(false);
     }

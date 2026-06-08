@@ -185,6 +185,12 @@ class AuthController extends Controller
         if ($isApproveFriend) {
             $friendMember = UserMember::where('approval_token', $approveFriendToken)->first();
             if ($friendMember) {
+                // Check if creditor is trying to approve themselves as debtor
+                $owner = User::find($friendMember->owner_id);
+                if ($owner && $owner->line_id === $profile->sub) {
+                    return redirect("{$frontendUrl}/approve-friend/{$approveFriendToken}?error=self_approval");
+                }
+
                 $manualUser = User::find($friendMember->member_id);
                 $existingUser = User::where('line_id', $profile->sub)->first();
 

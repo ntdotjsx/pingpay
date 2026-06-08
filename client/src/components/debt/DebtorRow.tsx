@@ -1,17 +1,16 @@
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   fmt,
   isPaid,
   progressPct,
   remaining,
   type Debtor,
-} from "@/lib/debtStore";
-import { DebtorAvatar } from "./DebtorAvatar";
-import { api } from "@/lib/api";
-import { Bell, Check, Link, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+} from '@/lib/debtStore';
+import { DebtorAvatar } from './DebtorAvatar';
+import { api } from '@/lib/api';
+import { Bell, Check, Link, Loader2 } from 'lucide-react';
 
 interface DebtorRowProps {
   debtor: Debtor;
@@ -41,9 +40,9 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
     setReminding(true);
     try {
       const res = await api.remindLoan(debtor.loanId);
-      toast.success(res.message);
+      alert(res.message);
     } catch (error: any) {
-      toast.error(error.message ?? "ส่ง LINE reminder ไม่สำเร็จ");
+      alert(error.message ?? 'ส่ง LINE reminder ไม่สำเร็จ');
     } finally {
       setReminding(false);
     }
@@ -51,23 +50,23 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
 
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2 border-b border-border last:border-b-0 transition-colors ${
-        paid ? "opacity-50" : "cursor-pointer hover:bg-muted/40"
+      className={`border-border flex items-center gap-2 border-b px-3 py-2 transition-colors last:border-b-0 ${
+        paid ? 'opacity-50' : 'hover:bg-muted/40 cursor-pointer'
       }`}
       onClick={() => !paid && onSelect(debtor.id)}
     >
       <DebtorAvatar debtor={debtor} />
 
       {/* left: name + note */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-[13px] font-medium text-foreground truncate">
+          <p className="text-foreground truncate text-[13px] font-medium">
             {debtor.name}
           </p>
           {paid && (
             <Badge
               variant="outline"
-              className="text-[10px] px-1 py-0 h-3.5 leading-none shrink-0 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950"
+              className="h-3.5 shrink-0 border-emerald-200 bg-emerald-50 px-1 py-0 text-[10px] leading-none text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
             >
               ✓ ครบ
             </Badge>
@@ -75,18 +74,18 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
           {debtor.paid > 0 && !paid && (
             <Badge
               variant="outline"
-              className="text-[10px] px-1 py-0 h-3.5 leading-none shrink-0 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950"
+              className="h-3.5 shrink-0 border-amber-200 bg-amber-50 px-1 py-0 text-[10px] leading-none text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
             >
               {pct}%
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <p className="text-[11px] text-muted-foreground truncate flex-1">
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <p className="text-muted-foreground flex-1 truncate text-[11px]">
             {debtor.note}
           </p>
           {debtor.paid > 0 && !paid && (
-            <Progress value={pct} className="w-12 h-0.5 shrink-0" />
+            <Progress value={pct} className="h-0.5 w-12 shrink-0" />
           )}
         </div>
       </div>
@@ -98,7 +97,7 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
             onClick={handleRemind}
             title="ส่ง LINE reminder"
             disabled={reminding}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors disabled:opacity-50"
           >
             {reminding ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -109,7 +108,7 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
           <button
             onClick={handleCopyLink}
             title="คัดลอกลิงก์ให้ลูกหนี้"
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
           >
             {copying ? (
               <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -121,16 +120,16 @@ export function DebtorRow({ debtor, onSelect }: DebtorRowProps) {
       )}
 
       {/* right: amount */}
-      <div className="text-right shrink-0">
+      <div className="shrink-0 text-right">
         {debtor.paid > 0 && !paid && (
-          <p className="text-[11px] text-muted-foreground line-through leading-none mb-0.5">
+          <p className="text-muted-foreground mb-0.5 text-[11px] leading-none line-through">
             {fmt(debtor.total)}
           </p>
         )}
         <p
-          className={`text-[13px] font-medium ${paid ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
+          className={`text-[13px] font-medium ${paid ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}
         >
-          {paid ? "ครบ" : fmt(remaining(debtor))}
+          {paid ? 'ครบ' : fmt(remaining(debtor))}
         </p>
       </div>
     </div>

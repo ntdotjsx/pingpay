@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
+
 import {
   AlertTriangle,
   CheckCircle2,
@@ -132,7 +132,6 @@ function MemberRow({
   const copyApprovalLink = () => {
     if (member.approval_link) {
       navigator.clipboard.writeText(member.approval_link);
-      toast.success('คัดลอกลิงก์อนุมัติสำเร็จ');
     }
   };
 
@@ -269,24 +268,23 @@ function MemberFormDialog({
 }) {
   const isEdit = member !== null;
   const [name, setName] = useState('');
-  const [lineId, setLineId] = useState('');
-  const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [createdLink, setCreatedLink] = useState<string>('');
   const [createdName, setCreatedName] = useState<string>('');
+  // Validation states
+  const [nameError, setNameError] = useState(false);
 
   useEffect(() => {
     setName(member?.name ?? '');
-    setLineId(member?.line_id ?? '');
-    setPhone(member?.phone ?? '');
     setCreatedLink('');
     setCreatedName('');
+    setNameError(false);
   }, [member, open]);
 
   const save = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      toast.error('กรุณาใส่ชื่อ');
+      setNameError(true);
       return;
     }
 
@@ -303,8 +301,8 @@ function MemberFormDialog({
           },
           body: JSON.stringify({
             name: trimmedName,
-            line_id: lineId.trim() || null,
-            phone: phone.trim() || null,
+            line_id: isEdit ? member.line_id : null,
+            phone: isEdit ? member.phone : null,
           }),
         },
       );
@@ -315,7 +313,6 @@ function MemberFormDialog({
       }
 
       const resData = await res.json();
-      toast.success(isEdit ? 'แก้ไขลูกหนี้แล้ว' : 'เพิ่มลูกหนี้แล้ว');
       onSaved();
 
       if (!isEdit && resData.data?.approval_link) {
@@ -325,7 +322,7 @@ function MemberFormDialog({
         onClose();
       }
     } catch (error: any) {
-      toast.error(error.message ?? 'บันทึกไม่สำเร็จ');
+      console.error(error.message ?? 'บันทึกไม่สำเร็จ');
     } finally {
       setSaving(false);
     }
@@ -333,7 +330,6 @@ function MemberFormDialog({
 
   const copyLink = () => {
     navigator.clipboard.writeText(createdLink);
-    toast.success('คัดลอกลิงก์สำเร็จ');
   };
 
   if (createdLink) {
@@ -393,27 +389,21 @@ function MemberFormDialog({
             <Label className="text-muted-foreground text-xs">ชื่อ</Label>
             <Input
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                setNameError(false);
+              }}
               onKeyDown={(event) => event.key === 'Enter' && save()}
               placeholder="เช่น สมชาย"
               autoFocus
+              aria-invalid={nameError}
+              className=""
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground text-xs">LINE ID</Label>
-            <Input
-              value={lineId}
-              onChange={(event) => setLineId(event.target.value)}
-              placeholder="optional"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground text-xs">เบอร์โทร</Label>
-            <Input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="optional"
-            />
+            {nameError && (
+              <p className="text-destructive mt-1 text-[11px] font-medium">
+                ⚠️ กรุณากรอกชื่อ
+              </p>
+            )}
           </div>
         </div>
 
@@ -421,7 +411,7 @@ function MemberFormDialog({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             ยกเลิก
           </Button>
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || !name.trim()}>
             {saving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
         </DialogFooter>
@@ -458,11 +448,10 @@ function DeleteMemberDialog({
         throw new Error(err.message ?? 'ลบไม่สำเร็จ');
       }
 
-      toast.success('ลบลูกหนี้แล้ว');
       onDeleted();
       onClose();
     } catch (error: any) {
-      toast.error(error.message ?? 'ลบไม่สำเร็จ');
+      console.error(error.message ?? 'ลบไม่สำเร็จ');
     } finally {
       setDeleting(false);
     }
@@ -515,10 +504,12 @@ function EmptyState({
   hasFilters,
   onReset,
   onAdd,
+  disabled,
 }: {
   hasFilters: boolean;
   onReset: () => void;
   onAdd: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="border-border/70 bg-background rounded-xl border border-dashed py-14 text-center">
@@ -526,12 +517,20 @@ function EmptyState({
       <p className="text-foreground text-sm font-medium">
         {hasFilters ? 'ไม่พบลูกหนี้ตามตัวกรอง' : 'ยังไม่มีลูกหนี้'}
       </p>
-      <button
-        onClick={hasFilters ? onReset : onAdd}
-        className="text-primary mt-2 text-xs underline underline-offset-2"
-      >
-        {hasFilters ? 'ล้างตัวกรอง' : 'เพิ่มลูกหนี้คนแรก'}
-      </button>
+      <div className="mt-2 flex flex-col items-center gap-1">
+        <button
+          onClick={hasFilters ? onReset : onAdd}
+          disabled={!hasFilters && disabled}
+          className="text-primary text-xs underline underline-offset-2 disabled:pointer-events-none disabled:opacity-50"
+        >
+          {hasFilters ? 'ล้างตัวกรอง' : 'เพิ่มลูกหนี้คนแรก'}
+        </button>
+        {!hasFilters && disabled && (
+          <span className="text-[11px] font-medium text-rose-500">
+            ⚠️ กรุณาตั้งค่า PromptPay ในหน้าตั้งค่าก่อนเพิ่มลูกหนี้คนแรก
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -553,7 +552,7 @@ export function FriendsContent() {
     api
       .getMembers()
       .then((data) => setMembers(data as Member[]))
-      .catch(() => toast.error('โหลดรายชื่อลูกหนี้ไม่สำเร็จ'))
+      .catch(() => console.error('โหลดรายชื่อลูกหนี้ไม่สำเร็จ'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -603,9 +602,6 @@ export function FriendsContent() {
 
   const openAdd = () => {
     if (hasPromptPay === false) {
-      toast.error(
-        'กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มลูกหนี้ (เพื่อน)',
-      );
       return;
     }
     setEditTarget(null);
@@ -647,15 +643,23 @@ export function FriendsContent() {
             {loading ? 'กำลังโหลด...' : `${members.length} รายชื่อ`}
           </p>
         </div>
-        <Button
-          onClick={openAdd}
-          size="sm"
-          variant="outline"
-          className="h-8 gap-1.5 text-xs"
-        >
-          <UserPlus className="h-3.5 w-3.5" />
-          เพิ่ม
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasPromptPay === false && (
+            <span className="text-[11px] font-medium whitespace-nowrap text-rose-500">
+              ⚠️ ตั้งค่า PromptPay ก่อน
+            </span>
+          )}
+          <Button
+            onClick={openAdd}
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            disabled={hasPromptPay === false}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            เพิ่ม
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -762,6 +766,7 @@ export function FriendsContent() {
           hasFilters={hasFilters}
           onReset={resetFilters}
           onAdd={openAdd}
+          disabled={hasPromptPay === false}
         />
       ) : (
         <div className="border-border/60 bg-background overflow-hidden rounded-xl border">

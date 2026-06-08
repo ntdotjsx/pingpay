@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useEffect, useCallback } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   fmt,
   isPaid,
@@ -9,14 +8,14 @@ import {
   loanToDebtor,
   type Debtor,
   type Group,
-} from "@/lib/debtStore";
-import { api, type ApiLoan, type ApiGroup } from "@/lib/api";
-import { MetricCard } from "./MetricCard";
-import { DebtorRow } from "./DebtorRow";
-import { GroupCard } from "./GroupCard";
-import { PaymentModal } from "./PaymentModal";
-import { CreateTripModal } from "./CreateTripModal";
-import { useAuth } from "@/hooks/useAuth";
+} from '@/lib/debtStore';
+import { api, type ApiLoan, type ApiGroup } from '@/lib/api';
+import { MetricCard } from './MetricCard';
+import { DebtorRow } from './DebtorRow';
+import { GroupCard } from './GroupCard';
+import { PaymentModal } from './PaymentModal';
+import { CreateTripModal } from './CreateTripModal';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DebtApp() {
   const { user } = useAuth();
@@ -41,13 +40,13 @@ export default function DebtApp() {
     try {
       setLoading(true);
       const [loansData, groupsData] = await Promise.all([
-        api.getLoans({ role: "lender" }),
+        api.getLoans({ role: 'lender' }),
         api.getGroups(),
       ]);
       setLoans(loansData);
       setApiGroups(groupsData);
     } catch (e) {
-      toast.error("โหลดข้อมูลไม่สำเร็จ");
+      alert('โหลดข้อมูลไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
@@ -65,13 +64,17 @@ export default function DebtApp() {
   const groups: Group[] = apiGroups.map((g) => ({
     id: g.id,
     name: g.name,
-    emoji: "✈️",
+    emoji: '✈️',
     date: g.created_at
-      ? new Date(g.created_at).toLocaleDateString("th-TH", { month: "short", year: "2-digit" })
-      : "",
+      ? new Date(g.created_at).toLocaleDateString('th-TH', {
+          month: 'short',
+          year: '2-digit',
+        })
+      : '',
   }));
 
-  const selectedDebtor = debtors.find((d) => d.loanId === selectedLoanId) ?? null;
+  const selectedDebtor =
+    debtors.find((d) => d.loanId === selectedLoanId) ?? null;
 
   // Metrics
   const totalAmount = debtors.reduce((s, d) => s + d.total, 0);
@@ -84,14 +87,15 @@ export default function DebtApp() {
       await api.recordPayment(loanId, { amount });
       const d = debtors.find((x) => x.loanId === loanId)!;
       const willBePaid = d.paid + amount >= d.total;
-      toast(willBePaid
-        ? `${d.name} จ่ายครบแล้ว ${fmt(d.total)}`
-        : `รับ ${fmt(amount)} จาก ${d.name} แล้ว`
+      alert(
+        willBePaid
+          ? `${d.name} จ่ายครบแล้ว ${fmt(d.total)}`
+          : `รับ ${fmt(amount)} จาก ${d.name} แล้ว`,
       );
       setSelectedLoanId(null);
       fetchAll();
     } catch (e: any) {
-      toast.error(e.message ?? "บันทึกไม่สำเร็จ");
+      alert(e.message ?? 'บันทึกไม่สำเร็จ');
     }
   };
 
@@ -103,17 +107,21 @@ export default function DebtApp() {
     return (
       <>
         <div className="mb-6 flex items-center gap-4">
-          <Skeleton className="w-15 h-15 rounded-xl" />
+          <Skeleton className="h-15 w-15 rounded-xl" />
           <div className="space-y-2">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-64" />
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-5">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        <div className="mb-5 grid grid-cols-2 gap-2.5 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
         </div>
-        <Skeleton className="h-10 w-full rounded-xl mb-5" />
-        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl mb-2" />)}
+        <Skeleton className="mb-5 h-10 w-full rounded-xl" />
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="mb-2 h-16 rounded-xl" />
+        ))}
       </>
     );
   }
@@ -124,16 +132,19 @@ export default function DebtApp() {
       <div className="mb-6 flex items-center gap-4">
         {user && (
           <img
-            className="w-15 h-15 rounded-xl object-cover"
-            src={user.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
+            className="h-15 w-15 rounded-xl object-cover"
+            src={
+              user.avatar ??
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
+            }
             alt={user.name}
           />
         )}
         <div>
-          <h1 className="text-2xl font-medium text-foreground leading-tight">
-            อย่างน้อยก็จ่ายทีละนิดนะ จาก {user?.name ?? ""}
+          <h1 className="text-foreground text-2xl leading-tight font-medium">
+            อย่างน้อยก็จ่ายทีละนิดนะ จาก {user?.name ?? ''}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             จ่ายหมดหรือผ่อนก็ได้ — เลือกรายชื่อแล้วกดได้เลย
           </p>
         </div>
@@ -143,36 +154,55 @@ export default function DebtApp() {
       {user?.line_id && (
         <button
           onClick={handleCopyLenderLink}
-          className="w-full flex items-center gap-3 bg-muted/50 border border-border rounded-xl px-3 py-2.5 text-left hover:bg-muted/80 transition-colors group mb-5"
+          className="bg-muted/50 border-border hover:bg-muted/80 group mb-5 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
         >
-          <div className="w-7 h-7 rounded-lg bg-foreground/8 flex items-center justify-center shrink-0">
+          <div className="bg-foreground/8 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
             {lenderLinkCopied ? (
-              <svg className="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                className="h-3.5 w-3.5 text-emerald-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             ) : (
-              <svg className="w-3.5 h-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                className="text-muted-foreground h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-foreground">
-              {lenderLinkCopied ? "คัดลอกแล้ว!" : "ลิงก์ของฉัน (ส่งให้ลูกหนี้)"}
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground text-xs font-semibold">
+              {lenderLinkCopied ? 'คัดลอกแล้ว!' : 'ลิงก์ของฉัน (ส่งให้ลูกหนี้)'}
             </p>
-            <p className="text-[11px] text-muted-foreground truncate">
+            <p className="text-muted-foreground truncate text-[11px]">
               {window.location.origin}/lender/{user.line_id}
             </p>
           </div>
-          <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          <svg
+            className="text-muted-foreground h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
         </button>
       )}
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-5">
+      <div className="mb-5 grid grid-cols-2 gap-2.5 md:grid-cols-3">
         <MetricCard
           label="ยังค้าง"
           value={fmt(totalAmount - totalPaid)}
@@ -197,16 +227,28 @@ export default function DebtApp() {
 
       {/* Tabs */}
       <Tabs defaultValue="ind">
-        <TabsList className="w-full mb-5">
+        <TabsList className="mb-5 w-full">
           <TabsTrigger value="ind" className="flex-1 gap-1.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
             รายบุคคล
           </TabsTrigger>
           <TabsTrigger value="grp" className="flex-1 gap-1.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
@@ -214,7 +256,13 @@ export default function DebtApp() {
             กลุ่ม {groups.length > 0 && `(${groups.length})`}
           </TabsTrigger>
           <TabsTrigger value="done" className="flex-1 gap-1.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
@@ -223,17 +271,21 @@ export default function DebtApp() {
         </TabsList>
 
         <TabsContent value="ind">
-          <p className="text-[11px] font-semibold uppercase tracking-[.1em] text-muted-foreground mb-2.5">
+          <p className="text-muted-foreground mb-2.5 text-[11px] font-semibold tracking-[.1em] uppercase">
             รอชำระ
           </p>
           {pending.length ? (
-            <div className="bg-background rounded-2xl overflow-hidden">
+            <div className="bg-background overflow-hidden rounded-2xl">
               {pending.map((d) => (
-                <DebtorRow key={d.loanId} debtor={d} onSelect={(id) => setSelectedLoanId(d.loanId)} />
+                <DebtorRow
+                  key={d.loanId}
+                  debtor={d}
+                  onSelect={(id) => setSelectedLoanId(d.loanId)}
+                />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground text-sm">
+            <div className="text-muted-foreground py-12 text-center text-sm">
               ไม่มีใครค้างเงินแล้ว 🎉
             </div>
           )}
@@ -241,37 +293,46 @@ export default function DebtApp() {
 
         <TabsContent value="grp">
           {/* Header + ปุ่มสร้างทริป */}
-          <div className="flex items-center justify-between mb-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[.1em] text-muted-foreground">
+          <div className="mb-2.5 flex items-center justify-between">
+            <p className="text-muted-foreground text-[11px] font-semibold tracking-[.1em] uppercase">
               กลุ่มทริป / งาน
             </p>
             <button
               onClick={() => setShowCreateTrip(true)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-foreground bg-foreground/8 hover:bg-foreground/15 transition-colors rounded-lg px-2.5 py-1"
+              className="text-foreground bg-foreground/8 hover:bg-foreground/15 flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors"
             >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               สร้างทริป
             </button>
           </div>
 
-          {groups.length ? groups.map((g) => (
-            <GroupCard
-              key={g.id}
-              group={g}
-              debtors={debtors.filter((d) => d.groupId === g.id)}
-              onSelect={(id) => {
-                const debtor = debtors.find(d => d.id === id);
-                if (debtor) setSelectedLoanId(debtor.loanId);
-              }}
-            />
-          )) : (
-            <div className="text-center py-10 text-muted-foreground text-sm space-y-3">
+          {groups.length ? (
+            groups.map((g) => (
+              <GroupCard
+                key={g.id}
+                group={g}
+                debtors={debtors.filter((d) => d.groupId === g.id)}
+                onSelect={(id) => {
+                  const debtor = debtors.find((d) => d.id === id);
+                  if (debtor) setSelectedLoanId(debtor.loanId);
+                }}
+              />
+            ))
+          ) : (
+            <div className="text-muted-foreground space-y-3 py-10 text-center text-sm">
               <p>✈️ ยังไม่มีกลุ่มทริป</p>
               <button
                 onClick={() => setShowCreateTrip(true)}
-                className="text-[12px] font-medium text-foreground underline underline-offset-2"
+                className="text-foreground text-[12px] font-medium underline underline-offset-2"
               >
                 + สร้างกลุ่มทริปแรก
               </button>
@@ -280,17 +341,21 @@ export default function DebtApp() {
         </TabsContent>
 
         <TabsContent value="done">
-          <p className="text-[11px] font-semibold uppercase tracking-[.1em] text-muted-foreground mb-2.5">
+          <p className="text-muted-foreground mb-2.5 text-[11px] font-semibold tracking-[.1em] uppercase">
             จ่ายครบแล้ว
           </p>
           {done.length ? (
-            <div className="bg-background rounded-2xl overflow-hidden">
+            <div className="bg-background overflow-hidden rounded-2xl">
               {done.map((d) => (
-                <DebtorRow key={d.loanId} debtor={d} onSelect={(id) => setSelectedLoanId(d.loanId)} />
+                <DebtorRow
+                  key={d.loanId}
+                  debtor={d}
+                  onSelect={(id) => setSelectedLoanId(d.loanId)}
+                />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground text-sm">
+            <div className="text-muted-foreground py-12 text-center text-sm">
               ยังไม่มีใครจ่ายครบเลย
             </div>
           )}

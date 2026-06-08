@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -32,6 +30,7 @@ function ApproveFriendAppInner() {
   } | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [connecting, setConnecting] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
     // Extract token from path: /approve-friend/:token
@@ -39,10 +38,16 @@ function ApproveFriendAppInner() {
     const tokenFromPath = pathParts[pathParts.length - 1] || '';
     setToken(tokenFromPath);
 
-    // Check query params for success=true
+    // Check query params for success=true or error=...
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
       setIsSuccess(true);
+    }
+    const err = urlParams.get('error');
+    if (err === 'self_approval') {
+      setErrorMsg(
+        'คุณไม่สามารถอนุมัติตัวเองเป็นลูกหนี้ได้ เจ้าหนี้และลูกหนี้ต้องเป็นคนละคนกัน',
+      );
     }
   }, []);
 
@@ -60,13 +65,10 @@ function ApproveFriendAppInner() {
           if (res.data.status === 'approved') {
             setIsSuccess(true);
           }
-        } else {
-          toast.error(res.message || 'เกิดข้อผิดพลาด');
         }
       })
       .catch((err) => {
         console.error(err);
-        toast.error(err.message || 'ลิงก์คำเชิญไม่ถูกต้องหรือหมดอายุแล้ว');
       })
       .finally(() => {
         setLoading(false);
@@ -91,21 +93,57 @@ function ApproveFriendAppInner() {
         throw new Error('ไม่พบ URL สำหรับการเชื่อมต่อ');
       }
     } catch (err: any) {
-      toast.error(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ LINE');
+      console.error(err);
       setConnecting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center space-y-4">
-        <div className="relative h-16 w-16">
-          <div className="border-primary/20 absolute top-0 left-0 h-full w-full rounded-full border-4"></div>
-          <div className="border-primary absolute top-0 left-0 h-full w-full animate-spin rounded-full border-4 border-t-transparent"></div>
-        </div>
-        <p className="text-muted-foreground animate-pulse text-sm font-medium">
-          กำลังโหลดข้อมูลคำเชิญ...
+      <div className="flex min-h-[50vh] flex-col items-center justify-center space-y-3">
+        <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+        <p className="text-muted-foreground text-xs font-medium">
+          กำลังโหลดข้อมูล...
         </p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto w-full max-w-md duration-300">
+        <div className="mb-6 text-center">
+          <h1 className="text-xl font-bold tracking-tight">PingPay</h1>
+        </div>
+
+        <Card className="bg-card text-card-foreground rounded-2xl border-0 shadow-none">
+          <CardHeader className="space-y-1.5 pt-6 pb-3 text-center">
+            <div className="bg-destructive/10 text-destructive mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <CardTitle className="text-destructive text-lg font-semibold tracking-tight">
+              ไม่สามารถอนุมัติตัวเองได้
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mx-auto max-w-xs text-xs leading-normal">
+              {errorMsg}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-muted-foreground px-6 py-4 text-center text-xs leading-relaxed">
+            ระบบไม่อนุญาตให้เจ้าหนี้เพิ่มตัวเองเป็นลูกหนี้
+            เจ้าหนี้และลูกหนี้ต้องเป็นคนละคนกันในระบบ PingPay เพื่อความโปร่งใส
+          </CardContent>
+          <CardFooter className="flex justify-center px-6 pt-2 pb-6">
+            <Button
+              className="h-10 w-full rounded-xl border-0 text-xs font-semibold shadow-none"
+              variant="outline"
+              onClick={() => {
+                window.location.href = '/dashboard';
+              }}
+            >
+              กลับสู่หน้าหลัก
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
@@ -113,43 +151,54 @@ function ApproveFriendAppInner() {
   if (isSuccess) {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto w-full max-w-md duration-300">
-        <Card className="bg-background/80 relative overflow-hidden border-emerald-500/20 shadow-xl backdrop-blur-md">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-emerald-400 to-teal-500" />
-          <CardHeader className="pt-8 pb-2 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 dark:bg-emerald-500/20">
-              <ShieldCheck className="h-10 w-10 animate-bounce text-emerald-500" />
+        <div className="mb-6 text-center">
+          <h1 className="text-xl font-bold tracking-tight">PingPay</h1>
+        </div>
+
+        <Card className="bg-card text-card-foreground rounded-2xl border-0 shadow-none">
+          <CardHeader className="space-y-1.5 pt-6 pb-2 text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20">
+              <ShieldCheck className="h-6 w-6" />
             </div>
-            <CardTitle className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-2xl font-bold text-transparent">
-              อนุมัติการเชื่อมต่อสำเร็จ!
+            <CardTitle className="text-xl font-semibold tracking-tight text-emerald-600 dark:text-emerald-400">
+              เชื่อมต่อสำเร็จแล้ว!
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2 text-sm">
-              คุณ {info?.member_name} ได้เชื่อมต่อ LINE กับ {info?.owner_name}{' '}
+            <CardDescription className="text-muted-foreground mx-auto max-w-xs text-xs leading-normal">
+              คุณ{' '}
+              <span className="text-foreground font-semibold">
+                {info?.member_name}
+              </span>{' '}
+              ได้เชื่อมต่อ LINE กับ{' '}
+              <span className="text-foreground font-semibold">
+                {info?.owner_name}
+              </span>{' '}
               เรียบร้อยแล้ว
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 px-6 py-4 text-center">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              ยินดีด้วย! บัญชี LINE ของคุณได้รับการเชื่อมต่อเข้ากับระบบทวงเงิน{' '}
-              <strong>PingPay</strong> แล้ว
-              คุณจะได้รับข้อความแจ้งเตือนรายละเอียดการยืมเงิน หลักฐาน
-              และสามารถแจ้งชำระผ่านช่องทาง LINE ได้โดยตรง
-              ซึ่งช่วยเพิ่มความแฟร์และชัดเจนกับทุกฝ่าย
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              บัญชี LINE ของคุณพร้อมใช้งานในระบบ <strong>PingPay</strong> แล้ว
+              คุณจะได้รับข้อความแจ้งเตือนรายละเอียดการยืมเงินและลิงก์ตรวจสอบรายการผ่าน
+              LINE ได้ทันที
             </p>
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3.5 text-xs text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-              <span>
-                ตอนนี้คุณสามารถแจ้งยืมเงิน
-                หรือเจ้าหนี้เพิ่มรายการหนี้กับคุณได้แล้ว
+            <div className="flex gap-2.5 rounded-xl bg-emerald-500/5 p-3.5 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+              <span className="text-left leading-normal font-medium">
+                ขณะนี้คุณสามารถทำรายการยืมเงิน
+                หรือให้เพื่อนเพิ่มหนี้ของคุณในระบบได้แล้ว
               </span>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center pt-2 pb-8">
-            <Badge
+          <CardFooter className="flex justify-center px-6 pt-2 pb-6">
+            <Button
+              className="h-10 w-full rounded-xl border-0 text-xs font-semibold shadow-none"
               variant="outline"
-              className="border-emerald-500/30 bg-emerald-500/5 font-medium text-emerald-600 dark:text-emerald-400"
+              onClick={() => {
+                window.location.href = '/dashboard';
+              }}
             >
-              สถานะ: เชื่อมต่อ LINE สำเร็จ
-            </Badge>
+              เข้าสู่แดชบอร์ด
+            </Button>
           </CardFooter>
         </Card>
       </div>
@@ -159,23 +208,37 @@ function ApproveFriendAppInner() {
   if (!info) {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto w-full max-w-md duration-300">
-        <Card className="border-destructive/20 bg-background/80 relative overflow-hidden shadow-xl backdrop-blur-md">
-          <div className="bg-destructive absolute top-0 left-0 h-1.5 w-full" />
-          <CardHeader className="pt-8 pb-2 text-center">
-            <div className="bg-destructive/10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
-              <AlertTriangle className="text-destructive h-8 w-8" />
+        <div className="mb-6 text-center">
+          <h1 className="text-xl font-bold tracking-tight">PingPay</h1>
+        </div>
+
+        <Card className="bg-card text-card-foreground rounded-2xl border-0 shadow-none">
+          <CardHeader className="space-y-1.5 pt-6 pb-3 text-center">
+            <div className="bg-destructive/10 text-destructive mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full">
+              <AlertTriangle className="h-6 w-6" />
             </div>
-            <CardTitle className="text-destructive text-xl font-bold">
-              ไม่สามารถดึงข้อมูลคำเชิญได้
+            <CardTitle className="text-destructive text-lg font-semibold tracking-tight">
+              ไม่พบข้อมูลคำเชิญ
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2 text-sm">
-              ลิงก์นี้อาจหมดอายุ ถูกยกเลิก หรือไม่มีอยู่ในระบบ
+            <CardDescription className="text-muted-foreground mx-auto max-w-xs text-sm leading-normal">
+              ลิงก์นี้อาจหมดอายุ ถูกยกเลิก หรือไม่มีอยู่ในระบบแล้ว
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-muted-foreground px-6 py-4 text-center text-sm">
+          <CardContent className="text-muted-foreground px-6 py-4 text-center text-xs leading-relaxed">
             โปรดติดต่อเจ้าหนี้ของคุณเพื่อขอรับลิงก์อนุมัติเชื่อมต่อ LINE
             ใหม่อีกครั้ง
           </CardContent>
+          <CardFooter className="flex justify-center px-6 pt-2 pb-6">
+            <Button
+              className="h-10 w-full rounded-xl border-0 text-xs font-semibold shadow-none"
+              variant="outline"
+              onClick={() => {
+                window.location.href = '/';
+              }}
+            >
+              กลับหน้าแรก
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     );
@@ -183,72 +246,74 @@ function ApproveFriendAppInner() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto w-full max-w-md duration-300">
-      <Card className="border-border bg-background/80 relative overflow-hidden shadow-xl backdrop-blur-md">
-        <div className="from-primary absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r to-violet-500" />
-        <CardHeader className="pt-8 pb-4 text-center">
-          <div className="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-            <UserCheck className="text-primary h-9 w-9" />
+      <div className="mb-6 text-center">
+        <h1 className="text-xl font-bold tracking-tight">PingPay</h1>
+      </div>
+
+      <Card className="bg-card text-card-foreground rounded-2xl border-0 shadow-none">
+        <CardHeader className="space-y-1.5 pt-6 pb-4 text-center">
+          <div className="bg-primary/10 text-primary mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full">
+            <UserCheck className="h-6 w-6" />
           </div>
-          <CardTitle className="from-foreground to-foreground/80 bg-gradient-to-r bg-clip-text text-2xl font-bold text-transparent">
+          <CardTitle className="text-xl font-semibold tracking-tight">
             อนุมัติและเชื่อมต่อ LINE
           </CardTitle>
-          <CardDescription className="text-muted-foreground mt-2 text-sm">
-            <strong>คุณ {info.owner_name}</strong> เชิญให้คุณเชื่อมต่อ LINE บน
-            PingPay
+          <CardDescription className="text-muted-foreground mx-auto max-w-xs text-xs leading-normal">
+            เพื่อรับการแจ้งเตือนและตรวจสอบรายการยืมเงินกับ{' '}
+            <span className="text-foreground font-semibold">
+              {info.owner_name}
+            </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 px-6">
-          <div className="border-muted bg-muted/20 space-y-3 rounded-2xl border p-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-lg bg-green-500/10 p-1.5">
-                <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-foreground text-xs font-semibold">
-                  แจ้งเตือนผ่านไลน์
+        <CardContent className="space-y-4 px-6 pb-4">
+          <div className="bg-muted/30 space-y-3 rounded-xl p-4">
+            <div className="flex gap-3">
+              <MessageSquare className="text-muted-foreground mt-1 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm leading-none font-medium">
+                  แจ้งเตือนอัตโนมัติผ่าน LINE
                 </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  เมื่อมีการเพิ่มรายการ ยืนยันชำระเงิน หรือยอดใกล้ครบกำหนด
-                  ระบบจะส่งแชทไลน์แจ้งเตือนคุณอัตโนมัติ
+                <p className="text-muted-foreground text-xs leading-normal">
+                  ระบบจะส่งรายละเอียดการยืมเงิน ยอดชำระ
+                  และหลักฐานสลิปเงินเข้าแชทไลน์โดยตรง
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-lg bg-blue-500/10 p-1.5">
-                <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-foreground text-xs font-semibold">
-                  อนุมัติก่อนยืม
+            <div className="bg-muted-foreground/10 h-px" />
+            <div className="flex gap-3">
+              <CheckCircle2 className="text-muted-foreground mt-1 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm leading-none font-medium">
+                  ปลอดภัย และตรวจสอบได้
                 </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  คุณต้องกดยอมรับ/อนุมัติทุกรายการที่เจ้าหนี้เพิ่มเข้ามาด้วยตนเองเพื่อความชัดเจน
-                  แฟร และตรวจสอบได้
+                <p className="text-muted-foreground text-xs leading-normal">
+                  คุณสามารถตรวจสอบรายการหนี้ทั้งหมด
+                  และกดอนุมัติหรือแนบหลักฐานชำระเงินได้ด้วยตนเอง
                 </p>
               </div>
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-3 px-6 pt-4 pb-8">
+        <CardFooter className="flex flex-col gap-3 px-6 pb-6">
           <Button
             onClick={handleApprove}
             disabled={connecting}
-            className="h-11 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-sm font-medium text-white shadow-md shadow-emerald-500/10 transition-all duration-200 hover:from-emerald-600 hover:to-green-700"
+            className="h-10 w-full rounded-xl border-0 text-xs font-semibold shadow-none"
           >
             {connecting ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                กำลังเปิด LINE Login...
+              <span className="flex items-center justify-center gap-2">
+                <span className="border-primary-foreground h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></span>
+                กำลังพาไป LINE Login...
               </span>
             ) : (
-              <span className="flex items-center justify-center gap-2">
-                เชื่อมต่อ LINE และเริ่มอนุมัติ{' '}
+              <span className="flex items-center justify-center gap-1.5">
+                อนุมัติและเชื่อมต่อ LINE
                 <ArrowRight className="h-4 w-4" />
               </span>
             )}
           </Button>
-          <p className="text-muted-foreground text-center text-[10px]">
-            การเชื่อมต่อจะบันทึกเพียงข้อมูลโปรไฟล์พื้นฐานและ LINE ID
+          <p className="text-muted-foreground max-w-[280px] text-center text-[10px] leading-normal">
+            การเชื่อมต่อจะบันทึกเฉพาะข้อมูลโปรไฟล์พื้นฐานและ LINE ID
             เพื่อส่งข้อความทวงเท่านั้น
           </p>
         </CardFooter>
@@ -261,7 +326,6 @@ export function ApproveFriendApp() {
   return (
     <>
       <ApproveFriendAppInner />
-      <Toaster />
     </>
   );
 }

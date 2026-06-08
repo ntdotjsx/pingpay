@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\LoanPayment;
+use App\Services\LineMessagingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CreditorSettingsController extends Controller
 {
@@ -37,10 +39,16 @@ class CreditorSettingsController extends Controller
                     'branch_id' => $user->slipok_branch_id,
                 ],
                 'promptpay' => [
-                    'has_id'   => $user->hasPromptPayConfigured(),
-                    'id'       => $user->promptpay_id,
+                    'has_id' => $user->hasPromptPayConfigured(),
+                    'id' => $user->promptpay_id,
                     'fallback' => $user->phone,
                     'recipient' => $user->getPromptPayRecipient(),
+                ],
+                'bank' => [
+                    'has_bank' => $user->hasBankConfigured(),
+                    'bank_name' => $user->bank_name,
+                    'bank_account_number' => $user->bank_account_number,
+                    'bank_account_name' => $user->bank_account_name,
                 ],
             ],
         ]);
@@ -49,11 +57,15 @@ class CreditorSettingsController extends Controller
     public function updateApiKeys(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'slipok_api_key'    => 'nullable|string|min:6|max:255',
-            'slipok_branch_id'  => 'nullable|string|max:100',
-            'promptpay_id'      => 'nullable|string|min:10|max:15|regex:/^[0-9\- ]+$/',
+            'slipok_api_key' => 'nullable|string|min:6|max:255',
+            'slipok_branch_id' => 'nullable|string|max:100',
+            'promptpay_id' => 'nullable|string|min:10|max:15|regex:/^[0-9\- ]+$/',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:100|regex:/^[0-9\- ]+$/',
+            'bank_account_name' => 'nullable|string|max:255',
             'clear_slipok_api_key' => 'sometimes|boolean',
-            'clear_promptpay_id'   => 'sometimes|boolean',
+            'clear_promptpay_id' => 'sometimes|boolean',
+            'clear_bank' => 'sometimes|boolean',
         ]);
 
         $user = $request->user();
@@ -74,6 +86,24 @@ class CreditorSettingsController extends Controller
             $user->promptpay_id = $validated['promptpay_id']
                 ? preg_replace('/\D+/', '', $validated['promptpay_id'])
                 : null;
+        }
+
+        if ($request->boolean('clear_bank')) {
+            $user->bank_name = null;
+            $user->bank_account_number = null;
+            $user->bank_account_name = null;
+        } else {
+            if (array_key_exists('bank_name', $validated)) {
+                $user->bank_name = $validated['bank_name'];
+            }
+            if (array_key_exists('bank_account_number', $validated)) {
+                $user->bank_account_number = $validated['bank_account_number']
+                    ? preg_replace('/\D+/', '', $validated['bank_account_number'])
+                    : null;
+            }
+            if (array_key_exists('bank_account_name', $validated)) {
+                $user->bank_account_name = $validated['bank_account_name'];
+            }
         }
 
         $user->save();
@@ -133,10 +163,10 @@ class CreditorSettingsController extends Controller
         $outstanding = (float) $activeLoans->sum('remaining_amount');
         $recovered = max(0, $totalLent - (float) $loans->sum('remaining_amount'));
         $overdueAmount = (float) $activeLoans
-            ->filter(fn(Loan $loan) => $loan->due_date && $loan->due_date->isPast())
+            ->filter(fn (Loan $loan) => $loan->due_date && $loan->due_date->isPast())
             ->sum('remaining_amount');
 
-        $confirmedPayments = LoanPayment::whereHas('loan', fn($query) => $query->where('lender_id', $userId))
+        $confirmedPayments = LoanPayment::whereHas('loan', fn ($query) => $query->where('lender_id', $userId))
             ->where('confirmation_status', LoanPayment::STATUS_CONFIRMED)
             ->get();
 
@@ -159,8 +189,8 @@ class CreditorSettingsController extends Controller
             ->take(5);
 
         $monthlyRecovery = $confirmedPayments
-            ->groupBy(fn(LoanPayment $payment) => $payment->paid_at->format('Y-m'))
-            ->map(fn($items, $month) => [
+            ->groupBy(fn (LoanPayment $payment) => $payment->paid_at->format('Y-m'))
+            ->map(fn ($items, $month) => [
                 'month' => $month,
                 'amount' => (float) $items->sum('amount'),
             ])
@@ -169,7 +199,7 @@ class CreditorSettingsController extends Controller
             ->take(-6)
             ->values();
 
-        $pendingConfirmations = LoanPayment::whereHas('loan', fn($query) => $query->where('lender_id', $userId))
+        $pendingConfirmations = LoanPayment::whereHas('loan', fn ($query) => $query->where('lender_id', $userId))
             ->where('confirmation_status', LoanPayment::STATUS_PENDING)
             ->count();
 
@@ -202,10 +232,10 @@ class CreditorSettingsController extends Controller
             return str_repeat('*', $length);
         }
 
-        return substr($secret, 0, 4) . str_repeat('*', max(4, $length - 8)) . substr($secret, -4);
+        return substr($secret, 0, 4).str_repeat('*', max(4, $length - 8)).substr($secret, -4);
     }
 
-    public function testNotification(Request $request, \App\Services\LineMessagingService $line): JsonResponse
+    public function testNotification(Request $request, LineMessagingService $line): JsonResponse
     {
         $user = $request->user();
 
@@ -215,7 +245,7 @@ class CreditorSettingsController extends Controller
 
         $targetLineId = $validated['to_line_id'] ?? $user->line_id;
 
-        if (!filled($targetLineId)) {
+        if (! filled($targetLineId)) {
             return response()->json([
                 'success' => false,
                 'message' => 'ไม่พบ LINE ID ในการทดสอบ กรุณาระบุ LINE ID ของผู้รับที่ต้องการส่งข้อความทดสอบ',
@@ -224,7 +254,7 @@ class CreditorSettingsController extends Controller
 
         $botToken = config('services.line.bot_token');
 
-        if (!filled($botToken)) {
+        if (! filled($botToken)) {
             return response()->json([
                 'success' => false,
                 'message' => 'ระบบยังไม่ได้ตั้งค่า LINE Messaging API token (.env) กรุณาติดต่อผู้ดูแลระบบ',
@@ -235,7 +265,7 @@ class CreditorSettingsController extends Controller
             $message = implode("\n", [
                 '🔔 ทดสอบการแจ้งเตือน PingPay',
                 '',
-                "สวัสดีครับ/ค่ะ!",
+                'สวัสดีครับ/ค่ะ!',
                 "นี่คือข้อความทดสอบแจ้งเตือนจากระบบ PingPay ส่งโดยเจ้าหนี้คุณ {$user->name} เพื่อยืนยันว่าการส่งแจ้งเตือนผ่าน LINE ทำงานเรียบร้อยแล้ว",
                 '',
                 '✅ LINE Bot พร้อมใช้งาน',
@@ -248,10 +278,11 @@ class CreditorSettingsController extends Controller
                 'message' => 'ส่งข้อความทดสอบไปยัง LINE ID ที่ระบุเรียบร้อยแล้ว กรุณาตรวจสอบห้องแชท',
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('LINE Notification Test Failed: ' . $e->getMessage());
+            Log::error('LINE Notification Test Failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'ส่งข้อความล้มเหลว: ' . $e->getMessage(),
+                'message' => 'ส่งข้อความล้มเหลว: '.$e->getMessage(),
             ], 500);
         }
     }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
   ExternalLink,
@@ -10,13 +10,13 @@ import {
   ArrowLeft,
   SlidersHorizontal,
   ChevronDown,
-} from "lucide-react";
-import { toast } from "sonner";
-import { api, type ApiPayment } from "@/lib/api";
-import { fmt } from "@/lib/debtStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+} from 'lucide-react';
+
+import { api, type ApiPayment } from '@/lib/api';
+import { fmt } from '@/lib/debtStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,58 +25,70 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
-const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
+const API_BASE = import.meta.env.PUBLIC_API_URL ?? '';
 
-type StatusFilter = "all" | "pending" | "confirmed" | "rejected";
+type StatusFilter = 'all' | 'pending' | 'confirmed' | 'rejected';
 const FILTER_LABELS: Record<StatusFilter, string> = {
-  all: "ทั้งหมด",
-  pending: "รออ่าน",
-  confirmed: "อ่านแล้ว",
-  rejected: "ปฏิเสธ",
+  all: 'ทั้งหมด',
+  pending: 'รออ่าน',
+  confirmed: 'อ่านแล้ว',
+  rejected: 'ปฏิเสธ',
 };
 
 function proofHref(proofUrl: string) {
   if (
-    proofUrl.startsWith("data:") ||
-    proofUrl.startsWith("http://") ||
-    proofUrl.startsWith("https://")
+    proofUrl.startsWith('data:') ||
+    proofUrl.startsWith('http://') ||
+    proofUrl.startsWith('https://')
   ) {
     return proofUrl;
   }
   return `${API_BASE}${proofUrl}`;
 }
 
-function getPillStatus(payment: ApiPayment): "pending" | "confirmed" | "rejected" {
-  if (payment.confirmation_status === "rejected") return "rejected";
-  if (payment.confirmation_status === "confirmed" && !payment.is_read) return "pending";
+function getPillStatus(
+  payment: ApiPayment,
+): 'pending' | 'confirmed' | 'rejected' {
+  if (payment.confirmation_status === 'rejected') return 'rejected';
+  if (payment.confirmation_status === 'confirmed' && !payment.is_read)
+    return 'pending';
   return payment.confirmation_status;
 }
 
 function statusText(payment: ApiPayment) {
   const status = getPillStatus(payment);
-  if (status === "confirmed") return "อ่านแล้ว";
-  if (status === "rejected") return "ปฏิเสธ";
-  return "รออ่าน";
+  if (status === 'confirmed') return 'อ่านแล้ว';
+  if (status === 'rejected') return 'ปฏิเสธ';
+  return 'รออ่าน';
 }
 
 type StatusStyle = { pill: string; dot: string };
 
 function statusStyle(payment: ApiPayment): StatusStyle {
   const status = getPillStatus(payment);
-  if (status === "confirmed")
-    return { pill: "bg-[#e8f8f2] text-[#1a9e6a]", dot: "bg-[#1a9e6a]" };
-  if (status === "rejected")
-    return { pill: "bg-red-50 text-red-500", dot: "bg-red-400" };
-  return { pill: "bg-[#fff8e1] text-[#d4860a]", dot: "bg-[#f5a623] animate-pulse" };
+  if (status === 'confirmed')
+    return { pill: 'bg-[#e8f8f2] text-[#1a9e6a]', dot: 'bg-[#1a9e6a]' };
+  if (status === 'rejected')
+    return { pill: 'bg-red-50 text-red-500', dot: 'bg-red-400' };
+  return {
+    pill: 'bg-[#fff8e1] text-[#d4860a]',
+    dot: 'bg-[#f5a623] animate-pulse',
+  };
 }
 
 function initials(name: string) {
-  return name.trim().charAt(0).toUpperCase() || "?";
+  return name.trim().charAt(0).toUpperCase() || '?';
 }
 
-function PaymentAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
+function PaymentAvatar({
+  name,
+  avatar,
+}: {
+  name: string;
+  avatar?: string | null;
+}) {
   if (avatar) {
     return (
       <img
@@ -87,43 +99,47 @@ function PaymentAvatar({ name, avatar }: { name: string; avatar?: string | null 
     );
   }
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+    <div className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
       {initials(name)}
     </div>
   );
 }
 
 function SummaryStrip({ payments }: { payments: ApiPayment[] }) {
-  const pending = payments.filter((p) => p.confirmation_status === "pending" || (p.confirmation_status === "confirmed" && !p.is_read));
+  const pending = payments.filter(
+    (p) =>
+      p.confirmation_status === 'pending' ||
+      (p.confirmation_status === 'confirmed' && !p.is_read),
+  );
   const totalPending = pending.reduce((s, p) => s + parseFloat(p.amount), 0);
 
   return (
     <div className="grid gap-2 sm:grid-cols-3">
-      <div className="rounded-xl border border-border/60 bg-foreground p-4 text-background">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-background/60">
+      <div className="border-border/60 bg-foreground text-background rounded-xl border p-4">
+        <p className="text-background/60 text-[10px] font-medium tracking-widest uppercase">
           รออ่านสลิป
         </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
+        <p className="mt-2 text-2xl leading-none font-semibold tabular-nums">
           {pending.length}
         </p>
-        <p className="mt-1 text-xs text-background/50">รายการชำระ</p>
+        <p className="text-background/50 mt-1 text-xs">รายการชำระ</p>
       </div>
-      <div className="rounded-xl border border-border/60 bg-background p-4">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+      <div className="border-border/60 bg-background rounded-xl border p-4">
+        <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
           ยอดรออ่าน
         </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
+        <p className="mt-2 text-2xl leading-none font-semibold tabular-nums">
           {fmt(totalPending)}
         </p>
       </div>
-      <div className="rounded-xl border border-border/60 bg-background p-4">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+      <div className="border-border/60 bg-background rounded-xl border p-4">
+        <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
           ทั้งหมด
         </p>
-        <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
+        <p className="mt-2 text-2xl leading-none font-semibold tabular-nums">
           {payments.length}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">รายการ</p>
+        <p className="text-muted-foreground mt-1 text-xs">รายการ</p>
       </div>
     </div>
   );
@@ -133,8 +149,8 @@ export function SlipChecksContent() {
   const [payments, setPayments] = useState<ApiPayment[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('all');
   const [savingId, setSavingId] = useState<number | null>(null);
 
   const selected = payments.find((p) => p.id === selectedId) ?? null;
@@ -144,21 +160,28 @@ export function SlipChecksContent() {
     return payments
       .filter((p) => {
         if (!term) return true;
-        const borrower = p.loan?.borrower?.name ?? "";
-        const note = p.note ?? "";
-        const description = p.loan?.description ?? "";
-        return `${borrower} ${note} ${description} ${p.id}`.toLowerCase().includes(term);
+        const borrower = p.loan?.borrower?.name ?? '';
+        const note = p.note ?? '';
+        const description = p.loan?.description ?? '';
+        return `${borrower} ${note} ${description} ${p.id}`
+          .toLowerCase()
+          .includes(term);
       })
       .filter((p) => {
-        if (filter === "all") return true;
-        if (filter === "pending") return p.confirmation_status === "pending" || (p.confirmation_status === "confirmed" && !p.is_read);
-        if (filter === "confirmed") return p.confirmation_status === "confirmed" && !!p.is_read;
+        if (filter === 'all') return true;
+        if (filter === 'pending')
+          return (
+            p.confirmation_status === 'pending' ||
+            (p.confirmation_status === 'confirmed' && !p.is_read)
+          );
+        if (filter === 'confirmed')
+          return p.confirmation_status === 'confirmed' && !!p.is_read;
         return p.confirmation_status === filter;
       });
   }, [payments, query, filter]);
 
-  const activeFilterCount = filter !== "all" ? 1 : 0;
-  const hasFilters = query.trim() !== "" || activeFilterCount > 0;
+  const activeFilterCount = filter !== 'all' ? 1 : 0;
+  const hasFilters = query.trim() !== '' || activeFilterCount > 0;
 
   const load = async () => {
     setLoading(true);
@@ -167,28 +190,29 @@ export function SlipChecksContent() {
       const rows = Array.isArray(data.data) ? data.data : [];
       setPayments(rows);
     } catch (error: any) {
-      toast.error(error.message ?? "โหลดรายการสลิปไม่สำเร็จ");
+      console.error(error.message ?? 'โหลดรายการสลิปไม่สำเร็จ');
       setPayments([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const markRead = async (payment: ApiPayment) => {
     if (!payment.loan?.id) return;
     setSavingId(payment.id);
     try {
-      if (payment.confirmation_status === "pending") {
+      if (payment.confirmation_status === 'pending') {
         await api.confirmPayment(payment.loan.id, payment.id);
       } else {
         await api.readPayment(payment.loan.id, payment.id);
       }
-      toast.success("อ่านสลิปแล้ว");
       await load();
     } catch (error: any) {
-      toast.error(error.message ?? "อัปเดตสถานะไม่สำเร็จ");
+      console.error(error.message ?? 'อัปเดตสถานะไม่สำเร็จ');
     } finally {
       setSavingId(null);
     }
@@ -199,23 +223,24 @@ export function SlipChecksContent() {
     setSavingId(payment.id);
     try {
       await api.rejectPayment(payment.loan.id, payment.id);
-      toast("ปฏิเสธสลิปแล้ว");
       await load();
     } catch (error: any) {
-      toast.error(error.message ?? "อัปเดตสถานะไม่สำเร็จ");
+      console.error(error.message ?? 'อัปเดตสถานะไม่สำเร็จ');
     } finally {
       setSavingId(null);
     }
   };
 
   const resetFilters = () => {
-    setQuery("");
-    setFilter("all");
+    setQuery('');
+    setFilter('all');
   };
 
   const proofUrl = selected?.proof_url ? proofHref(selected.proof_url) : null;
-  const mimeType = selected?.proofs?.[0]?.mime_type ?? "";
-  const isPdf = mimeType === "application/pdf" || proofUrl?.startsWith("data:application/pdf");
+  const mimeType = selected?.proofs?.[0]?.mime_type ?? '';
+  const isPdf =
+    mimeType === 'application/pdf' ||
+    proofUrl?.startsWith('data:application/pdf');
 
   /* ─── Detail view ─── */
   if (selectedId !== null && selected) {
@@ -228,18 +253,22 @@ export function SlipChecksContent() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedId(null)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground hover:text-foreground"
+              className="border-border/60 bg-background text-muted-foreground hover:text-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
             </button>
             <div>
-              <h2 className="text-base font-semibold text-foreground">{name}</h2>
-              <p className="text-xs text-muted-foreground">
-                {new Date(selected.paid_at).toLocaleString("th-TH")}
+              <h2 className="text-foreground text-base font-semibold">
+                {name}
+              </h2>
+              <p className="text-muted-foreground text-xs">
+                {new Date(selected.paid_at).toLocaleString('th-TH')}
               </p>
             </div>
           </div>
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${st.pill}`}>
+          <span
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${st.pill}`}
+          >
             <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
             {statusText(selected)}
           </span>
@@ -247,20 +276,20 @@ export function SlipChecksContent() {
 
         {/* Stat strip */}
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-border/60 bg-foreground p-4 text-background">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-background/60">
+          <div className="border-border/60 bg-foreground text-background rounded-xl border p-4">
+            <p className="text-background/60 text-[10px] font-medium tracking-widest uppercase">
               ยอดชำระ
             </p>
-            <p className="mt-2 text-2xl font-semibold leading-none tabular-nums">
+            <p className="mt-2 text-2xl leading-none font-semibold tabular-nums">
               {fmt(parseFloat(selected.amount))}
             </p>
           </div>
           {(selected.loan?.description || selected.note) && (
-            <div className="rounded-xl border border-border/60 bg-background p-4">
-              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            <div className="border-border/60 bg-background rounded-xl border p-4">
+              <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
                 หมายเหตุ
               </p>
-              <p className="mt-2 text-sm text-foreground">
+              <p className="text-foreground mt-2 text-sm">
                 {selected.loan?.description ?? selected.note}
               </p>
             </div>
@@ -268,20 +297,22 @@ export function SlipChecksContent() {
         </div>
 
         {/* Actions */}
-        {(selected.confirmation_status === "pending" || (selected.confirmation_status === "confirmed" && !selected.is_read)) && (
+        {(selected.confirmation_status === 'pending' ||
+          (selected.confirmation_status === 'confirmed' &&
+            !selected.is_read)) && (
           <div className="flex gap-2">
             <Button
-              className="h-9 flex-1 gap-2 rounded-xl bg-foreground text-background shadow-none hover:bg-foreground/90"
+              className="bg-foreground text-background hover:bg-foreground/90 h-9 flex-1 gap-2 rounded-xl shadow-none"
               onClick={() => markRead(selected)}
               disabled={savingId === selected.id}
             >
               <CheckCircle2 className="h-4 w-4" />
               อ่านแล้ว
             </Button>
-            {selected.confirmation_status === "pending" && (
+            {selected.confirmation_status === 'pending' && (
               <Button
                 variant="outline"
-                className="h-9 flex-1 gap-2 rounded-xl text-destructive hover:bg-destructive/5 hover:border-destructive/30"
+                className="text-destructive hover:bg-destructive/5 hover:border-destructive/30 h-9 flex-1 gap-2 rounded-xl"
                 onClick={() => reject(selected)}
                 disabled={savingId === selected.id}
               >
@@ -294,10 +325,17 @@ export function SlipChecksContent() {
 
         {/* Proof */}
         {proofUrl ? (
-          <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
-            <div className="flex items-center justify-between border-b border-border/50 px-4 py-2.5">
-              <p className="text-xs font-medium text-foreground">หลักฐานการชำระเงิน</p>
-              <Button size="sm" variant="outline" className="h-7 gap-1.5 rounded-lg text-xs" asChild>
+          <div className="border-border/60 bg-background overflow-hidden rounded-xl border">
+            <div className="border-border/50 flex items-center justify-between border-b px-4 py-2.5">
+              <p className="text-foreground text-xs font-medium">
+                หลักฐานการชำระเงิน
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 rounded-lg text-xs"
+                asChild
+              >
                 <a href={proofUrl} target="_blank" rel="noopener">
                   <ExternalLink className="h-3 w-3" />
                   เปิดเต็มหน้า
@@ -309,10 +347,10 @@ export function SlipChecksContent() {
                 <iframe
                   title="payment slip"
                   src={proofUrl}
-                  className="h-[60vh] w-full rounded-lg border border-border/60 bg-background"
+                  className="border-border/60 bg-background h-[60vh] w-full rounded-lg border"
                 />
               ) : (
-                <div className="flex items-start justify-center overflow-auto rounded-lg border border-border/60 bg-background p-4">
+                <div className="border-border/60 bg-background flex items-start justify-center overflow-auto rounded-lg border p-4">
                   <img
                     src={proofUrl}
                     alt="สลิปชำระเงิน"
@@ -323,9 +361,9 @@ export function SlipChecksContent() {
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/70 bg-background py-14 text-center">
-            <FileText className="mx-auto mb-3 h-7 w-7 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-foreground">ไม่มีไฟล์สลิป</p>
+          <div className="border-border/70 bg-background rounded-xl border border-dashed py-14 text-center">
+            <FileText className="text-muted-foreground/40 mx-auto mb-3 h-7 w-7" />
+            <p className="text-foreground text-sm font-medium">ไม่มีไฟล์สลิป</p>
           </div>
         )}
       </div>
@@ -338,9 +376,9 @@ export function SlipChecksContent() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-foreground">เช็คสลิป</h2>
-          <p className="text-xs text-muted-foreground">
-            {loading ? "กำลังโหลด..." : `${payments.length} รายการ`}
+          <h2 className="text-foreground text-base font-semibold">เช็คสลิป</h2>
+          <p className="text-muted-foreground text-xs">
+            {loading ? 'กำลังโหลด...' : `${payments.length} รายการ`}
           </p>
         </div>
       </div>
@@ -351,17 +389,17 @@ export function SlipChecksContent() {
       {/* Search + filter */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+          <Search className="text-muted-foreground/50 pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ค้นหาชื่อลูกหนี้ / หมายเหตุ"
-            className="h-9 pl-9 pr-8 text-sm"
+            className="h-9 pr-8 pl-9 text-sm"
           />
           {query && (
             <button
-              onClick={() => setQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setQuery('')}
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
               aria-label="ล้างคำค้น"
             >
               <X className="h-3.5 w-3.5" />
@@ -372,19 +410,21 @@ export function SlipChecksContent() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant={activeFilterCount ? "default" : "outline"}
+              variant={activeFilterCount ? 'default' : 'outline'}
               size="sm"
               className="h-9 shrink-0 gap-1 px-2.5"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               {activeFilterCount > 0 && (
-                <span className="text-[10px] font-semibold">{activeFilterCount}</span>
+                <span className="text-[10px] font-semibold">
+                  {activeFilterCount}
+                </span>
               )}
               <ChevronDown className="h-3 w-3 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            <DropdownMenuLabel className="text-muted-foreground text-[10px] tracking-widest uppercase">
               แสดง
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup
@@ -402,7 +442,7 @@ export function SlipChecksContent() {
                 <DropdownMenuSeparator />
                 <button
                   onClick={resetFilters}
-                  className="w-full px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground w-full px-2 py-1.5 text-left text-xs"
                 >
                   ล้างตัวกรอง
                 </button>
@@ -415,12 +455,12 @@ export function SlipChecksContent() {
       {/* Filter result count */}
       {!loading && hasFilters && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             แสดง {filtered.length} จาก {payments.length} รายการ
           </p>
           <button
             onClick={resetFilters}
-            className="text-xs text-primary underline underline-offset-2"
+            className="text-primary text-xs underline underline-offset-2"
           >
             ล้าง
           </button>
@@ -435,47 +475,55 @@ export function SlipChecksContent() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 bg-background py-14 text-center">
-          <ReceiptText className="mx-auto mb-3 h-7 w-7 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-foreground">
-            {hasFilters ? "ไม่พบสลิปตามตัวกรอง" : "ยังไม่มีสลิปให้ตรวจ"}
+        <div className="border-border/70 bg-background rounded-xl border border-dashed py-14 text-center">
+          <ReceiptText className="text-muted-foreground/40 mx-auto mb-3 h-7 w-7" />
+          <p className="text-foreground text-sm font-medium">
+            {hasFilters ? 'ไม่พบสลิปตามตัวกรอง' : 'ยังไม่มีสลิปให้ตรวจ'}
           </p>
           {hasFilters && (
             <button
               onClick={resetFilters}
-              className="mt-2 text-xs text-primary underline underline-offset-2"
+              className="text-primary mt-2 text-xs underline underline-offset-2"
             >
               ล้างตัวกรอง
             </button>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
-          <div className="divide-y divide-border/50">
+        <div className="border-border/60 bg-background overflow-hidden rounded-xl border">
+          <div className="divide-border/50 divide-y">
             {filtered.map((payment) => {
               const st = statusStyle(payment);
-              const name = payment.loan?.borrower?.name ?? `รายการ #${payment.id}`;
+              const name =
+                payment.loan?.borrower?.name ?? `รายการ #${payment.id}`;
               return (
                 <button
                   key={payment.id}
                   onClick={() => setSelectedId(payment.id)}
-                  className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                  className="group hover:bg-muted/30 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
                 >
-                  <PaymentAvatar name={name} avatar={payment.loan?.borrower?.avatar} />
+                  <PaymentAvatar
+                    name={name}
+                    avatar={payment.loan?.borrower?.avatar}
+                  />
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{name}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {new Date(payment.paid_at).toLocaleDateString("th-TH")}
+                    <p className="text-foreground truncate text-sm font-medium">
+                      {name}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                      {new Date(payment.paid_at).toLocaleDateString('th-TH')}
                       {payment.note && ` · ${payment.note}`}
                     </p>
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <p className="text-sm font-semibold tabular-nums text-foreground">
+                    <p className="text-foreground text-sm font-semibold tabular-nums">
                       {fmt(parseFloat(payment.amount))}
                     </p>
-                    <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${st.pill}`}>
+                    <span
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${st.pill}`}
+                    >
                       <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
                       {statusText(payment)}
                     </span>

@@ -1,15 +1,14 @@
 ---
-import BaseHead from "@/components/BaseHead.astro";
-import { Toaster } from "@/components/ui/sonner";
+import BaseHead from '@/components/BaseHead.astro';
 const pathname = Astro.url.pathname;
 interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description = "" } = Astro.props;
+const { title, description = '' } = Astro.props;
 
-import { ClientRouter } from "astro:transitions";
+import { ClientRouter } from 'astro:transitions';
 ---
 
 <!doctype html>
@@ -24,20 +23,19 @@ import { ClientRouter } from "astro:transitions";
     />
     <style>
       * {
-        font-family: "Sarabun", sans-serif;
+        font-family: 'Sarabun', sans-serif;
       }
     </style>
     <ClientRouter />
   </head>
   <body>
     <img
-      class="absolute top-0 left-0 h-[50vh] opacity-30 w-full object-cover object-center blur-lg [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)] [-webkit-mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)]"
+      class="absolute top-0 left-0 h-[50vh] w-full [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)] object-cover object-center opacity-30 blur-lg [-webkit-mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_0%,rgba(0,0,0,.1)_80%,rgba(0,0,0,0)_100%)]"
       src="/debt-hero.png"
       alt="blog_image"
     />
-    <div class="max-w-2xl mx-auto py-8 px-4 relative">
+    <div class="relative mx-auto max-w-2xl px-4 py-8">
       <slot />
-      <Toaster />
     </div>
   </body>
 </html>

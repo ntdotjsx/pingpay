@@ -23,6 +23,9 @@ use Laravel\Sanctum\HasApiTokens;
     'slipok_api_key',
     'slipok_branch_id',
     'promptpay_id',
+    'bank_name',
+    'bank_account_number',
+    'bank_account_name',
     'notification_settings',
 ])]
 #[Hidden(['password', 'remember_token', 'line_bot_token', 'slipok_api_key'])]
@@ -51,6 +54,14 @@ class User extends Authenticatable
     public function hasPromptPayConfigured(): bool
     {
         return filled($this->promptpay_id);
+    }
+
+    /**
+     * ตรวจสอบว่าผู้ใช้ตั้งค่าธนาคารแล้วหรือยัง
+     */
+    public function hasBankConfigured(): bool
+    {
+        return filled($this->bank_name) && filled($this->bank_account_number) && filled($this->bank_account_name);
     }
 
     /**

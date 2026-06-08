@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { Loader2Icon } from "lucide-react";
+import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2Icon } from 'lucide-react';
 
 interface Props {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ export function DashboardGuard({ children }: Props) {
   useEffect(() => {
     if (!loading && !user) {
       // ไม่มี session → กลับไป /auth
-      window.location.replace("/auth/signin");
+      window.location.replace('/auth/sign-in');
     }
   }, [user, loading]);
 
@@ -21,7 +21,7 @@ export function DashboardGuard({ children }: Props) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
       </div>
     );
   }
