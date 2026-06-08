@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 import {
   LayoutGridIcon,
   ListChecksIcon,
@@ -10,7 +10,7 @@ import {
   SettingsIcon,
   HelpCircleIcon,
   ActivityIcon,
-} from "lucide-react";
+} from 'lucide-react';
 
 export type SidebarNavItem = {
   title: string;
@@ -27,39 +27,39 @@ export type SidebarNavGroup = {
 
 export const navGroups: SidebarNavGroup[] = [
   {
-    label: "รายการ",
+    label: 'รายการ',
     items: [
       {
-        title: "รายการทั้งหมด",
-        path: "/dashboard/",
+        title: 'รายการทั้งหมด',
+        path: '/dashboard/',
         icon: <ListChecksIcon />,
       },
       {
-        title: "สถิติ",
-        path: "/dashboard/insights",
+        title: 'สถิติ',
+        path: '/dashboard/insights',
         icon: <BarChart3Icon />,
       },
       {
-        title: "เพื่อน",
-        path: "/dashboard/friends",
+        title: 'เพื่อน',
+        path: '/dashboard/friends',
         icon: <UsersIcon />,
       },
       {
-        title: "เช็คสลิป",
-        path: "/dashboard/slips",
+        title: 'เช็คสลิป',
+        path: '/dashboard/slips',
         icon: <ReceiptTextIcon />,
       },
     ],
   },
   {
-    label: "ขั้นสูง",
+    label: 'ขั้นสูง',
     items: [
       {
-        title: "ตั้งค่า",
+        title: 'ตั้งค่า',
         icon: <SettingsIcon />,
         subItems: [
-          { title: "การแจ้งเตือน", path: "/dashboard/notification" },
-          { title: "API keys", path: "/dashboard/api-keys" },
+          { title: 'การแจ้งเตือน', path: '/dashboard/notification' },
+          { title: 'ตั้งค่าการรับเงิน', path: '/dashboard/payment-settings' },
         ],
       },
     ],
@@ -73,8 +73,8 @@ export const footerNavLinks: SidebarNavItem[] = [
   //   icon: <HelpCircleIcon />,
   // },
   {
-    title: "สถานะของระบบ",
-    path: "https://status.ntdotjsx.site/",
+    title: 'สถานะของระบบ',
+    path: 'https://status.ntdotjsx.site/',
     icon: <ActivityIcon />,
   },
 ];

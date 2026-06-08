@@ -10,57 +10,50 @@ import {
   useCallback,
   useRef,
   useMemo,
-} from "react";
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+} from 'react';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart";
+} from '@/components/ui/chart';
 import {
   api,
   type ApiDashboard,
   type ApiLoan,
   type ApiPayment,
-} from "@/lib/api";
-import { fmt, loanToDebtor } from "@/lib/debtStore";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
+} from '@/lib/api';
+import { fmt, loanToDebtor } from '@/lib/debtStore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from '@/components/ui/sheet';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
-const API_BASE = import.meta.env.PUBLIC_API_URL ?? "";
+const API_BASE = import.meta.env.PUBLIC_API_URL ?? '';
 
 function proofHref(proofUrl: string) {
   if (
-    proofUrl.startsWith("data:") ||
-    proofUrl.startsWith("http://") ||
-    proofUrl.startsWith("https://")
+    proofUrl.startsWith('data:') ||
+    proofUrl.startsWith('http://') ||
+    proofUrl.startsWith('https://')
   ) {
     return proofUrl;
   }
@@ -107,8 +100,8 @@ function Hint({
         },
       })}
       <span
-        className={`pointer-events-none fixed left-0 top-0 z-[70] max-w-xs rounded-xl bg-foreground px-3 py-1.5 text-xs text-background shadow-lg ${
-          open ? "block" : "hidden"
+        className={`bg-foreground text-background pointer-events-none fixed top-0 left-0 z-[70] max-w-xs rounded-xl px-3 py-1.5 text-xs shadow-lg ${
+          open ? 'block' : 'hidden'
         }`}
         style={{
           transform: `translate3d(${pos.x + 14}px, ${pos.y + 16}px, 0)`,
@@ -123,30 +116,30 @@ function Hint({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function statusLabel(s: string) {
-  if (s === "settled")
+  if (s === 'settled')
     return {
-      text: "ครบ",
-      cls: "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400",
+      text: 'ครบ',
+      cls: 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400',
     };
-  if (s === "overdue")
+  if (s === 'overdue')
     return {
-      text: "เกิน",
-      cls: "text-red-600 border-red-200 bg-red-50 dark:bg-red-950/30 dark:text-red-400",
+      text: 'เกิน',
+      cls: 'text-red-600 border-red-200 bg-red-50 dark:bg-red-950/30 dark:text-red-400',
     };
   return {
-    text: "ค้าง",
-    cls: "text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400",
+    text: 'ค้าง',
+    cls: 'text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400',
   };
 }
 
 function relativeDate(iso: string) {
   const diff = Math.round((Date.now() - new Date(iso).getTime()) / 86400000);
-  if (diff === 0) return "วันนี้";
-  if (diff === 1) return "เมื่อวาน";
+  if (diff === 0) return 'วันนี้';
+  if (diff === 1) return 'เมื่อวาน';
   if (diff < 30) return `${diff} วันที่แล้ว`;
-  return new Date(iso).toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "short",
+  return new Date(iso).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
   });
 }
 
@@ -156,7 +149,7 @@ function DonutChart({
   pct,
   size = 56,
   stroke = 7,
-  color = "#10b981",
+  color = '#10b981',
 }: {
   pct: number;
   size?: number;
@@ -173,7 +166,7 @@ function DonutChart({
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      style={{ transform: "rotate(-90deg)" }}
+      style={{ transform: 'rotate(-90deg)' }}
     >
       <circle
         cx={cx}
@@ -205,39 +198,39 @@ function DonutChart({
 function Avatar({
   name,
   avatar,
-  size = "sm",
+  size = 'sm',
 }: {
   name: string;
   avatar?: string | null;
-  size?: "2xs" | "xs" | "sm" | "md";
+  size?: '2xs' | 'xs' | 'sm' | 'md';
 }) {
   const sz =
-    size === "md"
-      ? "w-9 h-9 text-sm"
-      : size === "xs"
-        ? "w-6 h-6 text-[10px]"
-        : size === "2xs"
-          ? "w-4 h-4 text-[8px]"
-          : "w-8 h-8 text-xs";
+    size === 'md'
+      ? 'w-9 h-9 text-sm'
+      : size === 'xs'
+        ? 'w-6 h-6 text-[10px]'
+        : size === '2xs'
+          ? 'w-4 h-4 text-[8px]'
+          : 'w-8 h-8 text-xs';
   if (avatar)
     return (
       <img
         src={avatar}
         alt={name}
-        className={`${sz} rounded-full object-cover shrink-0`}
+        className={`${sz} shrink-0 rounded-full object-cover`}
       />
     );
   const colors = [
-    "bg-violet-100 text-violet-700",
-    "bg-sky-100 text-sky-700",
-    "bg-amber-100 text-amber-700",
-    "bg-emerald-100 text-emerald-700",
-    "bg-rose-100 text-rose-700",
+    'bg-violet-100 text-violet-700',
+    'bg-sky-100 text-sky-700',
+    'bg-amber-100 text-amber-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-rose-100 text-rose-700',
   ];
   const c = colors[name.charCodeAt(0) % colors.length];
   return (
     <div
-      className={`${sz} ${c} rounded-full flex items-center justify-center font-semibold shrink-0`}
+      className={`${sz} ${c} flex shrink-0 items-center justify-center rounded-full font-semibold`}
     >
       {name.charAt(0).toUpperCase()}
     </div>
@@ -256,34 +249,34 @@ function StatCard({
   label: string;
   value: string;
   sub?: string;
-  trend?: "up" | "down" | "neutral";
+  trend?: 'up' | 'down' | 'neutral';
   accent?: boolean;
 }) {
   return (
     <div
-      className={`rounded-2xl p-4 space-y-2 border ${
+      className={`space-y-2 rounded-2xl border p-4 ${
         accent
-          ? "bg-foreground text-background border-transparent"
-          : "bg-background border-border/60"
+          ? 'bg-foreground text-background border-transparent'
+          : 'bg-background border-border/60'
       }`}
     >
       <p
-        className={`text-[11px] font-medium uppercase tracking-widest ${
-          accent ? "text-background/60" : "text-muted-foreground"
+        className={`text-[11px] font-medium tracking-widest uppercase ${
+          accent ? 'text-background/60' : 'text-muted-foreground'
         }`}
       >
         {label}
       </p>
       <p
-        className={`text-2xl font-semibold leading-none tabular-nums ${
-          accent ? "text-background" : "text-foreground"
+        className={`text-2xl leading-none font-semibold tabular-nums ${
+          accent ? 'text-background' : 'text-foreground'
         }`}
       >
         {value}
       </p>
       {sub && (
         <p
-          className={`text-xs ${accent ? "text-background/60" : "text-muted-foreground"}`}
+          className={`text-xs ${accent ? 'text-background/60' : 'text-muted-foreground'}`}
         >
           {sub}
         </p>
@@ -320,23 +313,23 @@ function LoanRow({
     daysUntilDue !== null &&
     daysUntilDue >= 0 &&
     daysUntilDue <= 3 &&
-    loan.status !== "overdue" &&
-    loan.status !== "settled";
+    loan.status !== 'overdue' &&
+    loan.status !== 'settled';
   const dueSoonLabel =
     daysUntilDue === 0
-      ? "ครบกำหนดวันนี้"
+      ? 'ครบกำหนดวันนี้'
       : `ใกล้ครบกำหนดใน ${daysUntilDue} วัน`;
 
   return (
     <Hint label={`ดูรายละเอียดของ ${borrowerName}`}>
       <button
         onClick={onClick}
-        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+        className="hover:bg-muted/40 group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors"
       >
         <Avatar name={borrowerName} avatar={loan.borrower?.avatar} />
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-foreground truncate">
+            <p className="text-foreground truncate text-sm font-medium">
               {borrowerName}
             </p>
             {isDueSoon && (
@@ -351,45 +344,45 @@ function LoanRow({
               </Hint>
             )}
             {pendingCount > 0 && (
-              <span className="shrink-0 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                 {pendingCount}
               </span>
             )}
             {loan.group_id && (
-              <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+              <span className="text-muted-foreground bg-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px]">
                 กลุ่ม
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            {pct > 0 && loan.status !== "settled" && (
-              <div className="flex-1 max-w-24">
+          <div className="mt-1 flex items-center gap-2">
+            {pct > 0 && loan.status !== 'settled' && (
+              <div className="max-w-24 flex-1">
                 <Progress value={pct} className="h-1" />
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground truncate">
-              {loan.description ?? "ไม่มีหมายเหตุ"}
-              {loan.loan_date ? ` · ${relativeDate(loan.loan_date)}` : ""}
+            <p className="text-muted-foreground truncate text-[11px]">
+              {loan.description ?? 'ไม่มีหมายเหตุ'}
+              {loan.loan_date ? ` · ${relativeDate(loan.loan_date)}` : ''}
             </p>
           </div>
         </div>
-        <div className="text-right shrink-0 space-y-1">
+        <div className="shrink-0 space-y-1 text-right">
           <p
             className={`text-sm font-semibold tabular-nums ${
-              loan.status === "settled" ? "text-emerald-600" : "text-foreground"
+              loan.status === 'settled' ? 'text-emerald-600' : 'text-foreground'
             }`}
           >
-            {loan.status === "settled" ? "ครบ" : fmt(remaining)}
+            {loan.status === 'settled' ? 'ครบ' : fmt(remaining)}
           </p>
           <Badge
             variant="outline"
-            className={`text-[10px] px-1.5 py-0 h-4 leading-none ${st.cls}`}
+            className={`h-4 px-1.5 py-0 text-[10px] leading-none ${st.cls}`}
           >
             {st.text}
           </Badge>
         </div>
         <svg
-          className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+          className="text-muted-foreground/40 group-hover:text-muted-foreground h-3.5 w-3.5 shrink-0 transition-colors"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -408,7 +401,7 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
   const recoveredPct = lent > 0 ? Math.round((recovered / lent) * 100) : 0;
 
   return (
-    <div className="space-y-3 mt-2">
+    <div className="mt-2 space-y-3">
       <div className="flex items-center gap-4">
         {/* Donut */}
         <div className="relative shrink-0">
@@ -418,7 +411,9 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
             <span className="text-sm font-bold tabular-nums">
               {recoveredPct}%
             </span>
-            <span className="text-[8px] text-muted-foreground leading-none">คืนแล้ว</span>
+            <span className="text-muted-foreground text-[8px] leading-none">
+              คืนแล้ว
+            </span>
           </div>
         </div>
 
@@ -426,8 +421,8 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
         <div className="flex-1 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-xs text-muted-foreground">ยังค้าง</span>
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              <span className="text-muted-foreground text-xs">ยังค้าง</span>
             </div>
 
             <span className="text-xs font-semibold text-amber-600 tabular-nums">
@@ -437,8 +432,8 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-xs text-muted-foreground">ได้คืนแล้ว</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-muted-foreground text-xs">ได้คืนแล้ว</span>
             </div>
 
             <span className="text-xs font-semibold text-emerald-600 tabular-nums">
@@ -449,29 +444,47 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-border/50" />
+      <div className="bg-border/50 h-px" />
 
       {/* Quick Summary / Status */}
       <div className="flex items-center justify-between text-[11px]">
         <span className="text-muted-foreground flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5 text-muted-foreground/75 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="text-muted-foreground/75 h-3.5 w-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
             <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
             <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
           </svg>
           <span>ยอดปล่อยกู้รวม:</span>
-          <span className="font-semibold text-foreground tabular-nums">{fmt(lent)}</span>
+          <span className="text-foreground font-semibold tabular-nums">
+            {fmt(lent)}
+          </span>
         </span>
-        <span className={`font-semibold ${
-          recoveredPct === 100 ? "text-emerald-500" :
-          recoveredPct >= 70 ? "text-emerald-600" :
-          recoveredPct > 0 ? "text-amber-500" :
-          "text-muted-foreground"
-        }`}>
-          {recoveredPct === 100 ? "✓ ทวงครบแล้ว!" :
-           recoveredPct >= 70 ? "เก็บได้ส่วนใหญ่" :
-           recoveredPct > 0 ? "กำลังทยอยคืน" :
-           "ยังไม่มีการชำระ"}
+        <span
+          className={`font-semibold ${
+            recoveredPct === 100
+              ? 'text-emerald-500'
+              : recoveredPct >= 70
+                ? 'text-emerald-600'
+                : recoveredPct > 0
+                  ? 'text-amber-500'
+                  : 'text-muted-foreground'
+          }`}
+        >
+          {recoveredPct === 100
+            ? '✓ ทวงครบแล้ว!'
+            : recoveredPct >= 70
+              ? 'เก็บได้ส่วนใหญ่'
+              : recoveredPct > 0
+                ? 'กำลังทยอยคืน'
+                : 'ยังไม่มีการชำระ'}
         </span>
       </div>
     </div>
@@ -479,7 +492,7 @@ function BalanceRing({ lent, recovered }: { lent: number; recovered: number }) {
 }
 
 function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const allMonths = useMemo(() => {
     const monthsSet = new Set<string>();
@@ -488,7 +501,7 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
         monthsSet.add(loan.loan_date.substring(0, 7));
       }
       loan.payments?.forEach((p) => {
-        if (p.confirmation_status === "confirmed" && p.paid_at) {
+        if (p.confirmation_status === 'confirmed' && p.paid_at) {
           monthsSet.add(p.paid_at.substring(0, 7));
         }
       });
@@ -499,7 +512,7 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
   const activities = useMemo(() => {
     const list: Array<{
       id: string;
-      type: "borrow" | "return";
+      type: 'borrow' | 'return';
       date: string;
       amount: number;
       name: string;
@@ -509,21 +522,21 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
     loans.forEach((loan) => {
       list.push({
         id: `loan-${loan.id}`,
-        type: "borrow",
-        date: loan.loan_date.split("T")[0],
+        type: 'borrow',
+        date: loan.loan_date.split('T')[0],
         amount: parseFloat(loan.amount),
-        name: loan.borrower?.name ?? "เพื่อน",
+        name: loan.borrower?.name ?? 'เพื่อน',
         avatar: loan.borrower?.avatar ?? null,
       });
 
       loan.payments?.forEach((payment) => {
-        if (payment.confirmation_status === "confirmed") {
+        if (payment.confirmation_status === 'confirmed') {
           list.push({
             id: `pay-${payment.id}`,
-            type: "return",
-            date: payment.paid_at.split("T")[0],
+            type: 'return',
+            date: payment.paid_at.split('T')[0],
             amount: parseFloat(payment.amount),
-            name: loan.borrower?.name ?? "เพื่อน",
+            name: loan.borrower?.name ?? 'เพื่อน',
             avatar: loan.borrower?.avatar ?? null,
           });
         }
@@ -531,7 +544,7 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
     });
 
     const filtered = list.filter((item) => {
-      if (selectedMonth === "all") return true;
+      if (selectedMonth === 'all') return true;
       return item.date.startsWith(selectedMonth);
     });
 
@@ -540,10 +553,20 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
   }, [loans, selectedMonth]);
 
   const formatMonthYear = (ym: string) => {
-    const [y, m] = ym.split("-");
+    const [y, m] = ym.split('-');
     const months = [
-      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.',
     ];
     const monthIdx = parseInt(m, 10) - 1;
     const shortYear = parseInt(y, 10) + 543;
@@ -552,21 +575,23 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
 
   const chartConfig = {
     amount: {
-      label: "จำนวนเงิน",
-      color: "#f43f5e",
+      label: 'จำนวนเงิน',
+      color: '#f43f5e',
     },
   } satisfies ChartConfig;
 
   return (
-    <div className="flex flex-col h-full justify-between">
-      <div className="flex items-center justify-between mb-2">
+    <div className="flex h-full flex-col justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-foreground">ความเคลื่อนไหวธุรกรรมล่าสุด</p>
+          <p className="text-foreground text-sm font-semibold">
+            ความเคลื่อนไหวธุรกรรมล่าสุด
+          </p>
         </div>
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="text-xs border border-border bg-background rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground font-medium"
+          className="border-border bg-background focus:ring-primary text-muted-foreground cursor-pointer rounded-lg border px-2 py-1 text-xs font-medium focus:ring-1 focus:outline-none"
         >
           <option value="all">ทั้งหมด</option>
           {allMonths.map((ym) => (
@@ -578,12 +603,15 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
       </div>
 
       {activities.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs py-8">
+        <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center py-8 text-xs">
           <span>ยังไม่มีข้อมูลการยืม/คืนเพื่อแสดงกราฟ</span>
         </div>
       ) : (
-        <div className="flex-1 mt-2">
-          <ChartContainer config={chartConfig} className="w-full h-[85px] aspect-auto">
+        <div className="mt-2 flex-1">
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[85px] w-full"
+          >
             <BarChart
               data={activities}
               margin={{ top: 25, right: 10, left: 10, bottom: 5 }}
@@ -596,14 +624,16 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
                 tickMargin={8}
                 tickFormatter={(value, index) => {
                   const item = activities[index];
-                  if (!item) return "";
-                  const parts = item.date.split("-");
-                  return parts.length >= 3 ? `${parts[2]}/${parts[1]}` : item.date;
+                  if (!item) return '';
+                  const parts = item.date.split('-');
+                  return parts.length >= 3
+                    ? `${parts[2]}/${parts[1]}`
+                    : item.date;
                 }}
               />
               <YAxis hide />
               <ChartTooltip
-                cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                cursor={{ fill: 'rgba(0,0,0,0.04)' }}
                 content={
                   <ChartTooltipContent
                     labelFormatter={(label, payload) => {
@@ -611,29 +641,48 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
                       return item ? `วันที่: ${item.date}` : `วันที่: ${label}`;
                     }}
                     formatter={(value, name, item) => {
-                      const isBorrow = item.payload.type === "borrow";
+                      const isBorrow = item.payload.type === 'borrow';
                       return (
-                        <span className={isBorrow ? "text-rose-500 font-bold" : "text-emerald-500 font-bold"}>
-                          {isBorrow ? "ยืมออก" : "จ่ายคืน"}: {fmt(value as number)} ({item.payload.name})
+                        <span
+                          className={
+                            isBorrow
+                              ? 'font-bold text-rose-500'
+                              : 'font-bold text-emerald-500'
+                          }
+                        >
+                          {isBorrow ? 'ยืมออก' : 'จ่ายคืน'}:{' '}
+                          {fmt(value as number)} ({item.payload.name})
                         </span>
                       );
                     }}
                   />
                 }
               />
-              <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={26}
+              <Bar
+                dataKey="amount"
+                radius={[8, 8, 0, 0]}
+                barSize={26}
                 label={(props: any) => {
                   const { x, y, width, index } = props;
                   const item = activities[index];
                   if (!item) return null;
                   return (
                     <g>
-                      <foreignObject x={x + width / 2 - 10} y={y - 25} width="20" height="20">
-                        <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-muted border border-border/50 shadow-sm">
+                      <foreignObject
+                        x={x + width / 2 - 10}
+                        y={y - 25}
+                        width="20"
+                        height="20"
+                      >
+                        <div className="bg-muted border-border/50 flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border shadow-sm">
                           {item.avatar ? (
-                            <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full" />
+                            <img
+                              src={item.avatar}
+                              alt={item.name}
+                              className="h-full w-full rounded-full object-cover"
+                            />
                           ) : (
-                            <span className="text-[8px] font-bold text-muted-foreground">
+                            <span className="text-muted-foreground text-[8px] font-bold">
                               {item.name.charAt(0).toUpperCase()}
                             </span>
                           )}
@@ -644,11 +693,11 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
                 }}
               >
                 {activities.map((entry, index) => {
-                  const isBorrow = entry.type === "borrow";
+                  const isBorrow = entry.type === 'borrow';
                   return (
                     <Cell
                       key={`cell-${index}`}
-                      fill={isBorrow ? "#f43f5e" : "#10b981"}
+                      fill={isBorrow ? '#f43f5e' : '#10b981'}
                     />
                   );
                 })}
@@ -664,21 +713,21 @@ function ActivityLineGraph({ loans }: { loans: ApiLoan[] }) {
 // ─── Loan detail modal (unchanged functionality, cleaner look) ────────────────
 
 function monthLabel(date: Date) {
-  return date.toLocaleDateString("th-TH", {
-    month: "long",
-    year: "numeric",
+  return date.toLocaleDateString('th-TH', {
+    month: 'long',
+    year: 'numeric',
   });
 }
 
 function dateKey(date: Date) {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
 function parseDate(value: string) {
-  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
   return new Date(year, month - 1, day);
 }
 
@@ -704,7 +753,7 @@ function DashboardCalendar({
   });
 
   const dueLoans = loans
-    .filter((loan) => loan.status !== "settled" && loan.due_date)
+    .filter((loan) => loan.status !== 'settled' && loan.due_date)
     .sort((a, b) => {
       const aTime = a.due_date ? parseDate(a.due_date).getTime() : 0;
       const bTime = b.due_date ? parseDate(b.due_date).getTime() : 0;
@@ -726,20 +775,20 @@ function DashboardCalendar({
     });
   };
   const calendarDateLabel = (date: Date) =>
-    date.toLocaleDateString("th-TH", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
+    date.toLocaleDateString('th-TH', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-background p-2.5">
+    <section className="border-border/60 bg-background rounded-2xl border p-2.5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[12px] font-semibold text-foreground">
+          <p className="text-foreground text-[12px] font-semibold">
             ปฏิทินครบกำหนด
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-muted-foreground text-[10px]">
             {monthLabel(viewDate)}
           </p>
         </div>
@@ -747,7 +796,7 @@ function DashboardCalendar({
           <Hint label="เดือนก่อนหน้า">
             <button
               onClick={() => goMonth(-1)}
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground flex h-[26px] w-[26px] items-center justify-center rounded-md border transition-colors"
               aria-label="เดือนก่อนหน้า"
             >
               <svg
@@ -764,7 +813,7 @@ function DashboardCalendar({
           <Hint label="กลับไปเดือนปัจจุบัน">
             <button
               onClick={() => setViewDate(new Date())}
-              className="h-[26px] rounded-md border border-border/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground h-[26px] rounded-md border px-2 text-[10px] transition-colors"
             >
               วันนี้
             </button>
@@ -772,7 +821,7 @@ function DashboardCalendar({
           <Hint label="เดือนถัดไป">
             <button
               onClick={() => goMonth(1)}
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground flex h-[26px] w-[26px] items-center justify-center rounded-md border transition-colors"
               aria-label="เดือนถัดไป"
             >
               <svg
@@ -789,8 +838,8 @@ function DashboardCalendar({
         </div>
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-0.5 text-center text-[9px] font-medium text-muted-foreground">
-        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((day) => (
+      <div className="text-muted-foreground mt-2 grid grid-cols-7 gap-0.5 text-center text-[9px] font-medium">
+        {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((day) => (
           <div key={day} className="py-[1px]">
             {day}
           </div>
@@ -803,9 +852,9 @@ function DashboardCalendar({
           const items = byDate[key] ?? [];
           const inMonth = day.getMonth() === viewDate.getMonth();
           const isToday = key === todayKey;
-          const overdue = items.some((loan) => loan.status === "overdue");
+          const overdue = items.some((loan) => loan.status === 'overdue');
           const dueSoonLoans = items.filter((loan) => {
-            if (!loan.due_date || loan.status === "overdue") return false;
+            if (!loan.due_date || loan.status === 'overdue') return false;
             const daysUntilDue = Math.round(
               (parseDate(loan.due_date).getTime() - todayStart) / 86400000,
             );
@@ -820,10 +869,10 @@ function DashboardCalendar({
                   parseFloat(loan.remaining_amount),
                 )}`,
             )
-            .join(", ")}`;
+            .join(', ')}`;
           const dueSoonLabel = `ใกล้ครบกำหนด: ${dueSoonLoans
             .map((loan) => loan.borrower?.name ?? `#${loan.id}`)
-            .join(", ")}`;
+            .join(', ')}`;
 
           const dayButton = (
             <button
@@ -833,30 +882,30 @@ function DashboardCalendar({
               className={`relative aspect-square min-h-[30px] rounded-md border text-left transition-colors ${
                 items.length
                   ? overdue
-                    ? "border-red-200 bg-red-50 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/20"
-                    : "border-amber-200 bg-amber-50 hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/20"
-                  : "border-transparent hover:bg-muted/40"
-              } ${inMonth ? "text-foreground" : "text-muted-foreground/35"}`}
+                    ? 'border-red-200 bg-red-50 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/20'
+                    : 'border-amber-200 bg-amber-50 hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/20'
+                  : 'hover:bg-muted/40 border-transparent'
+              } ${inMonth ? 'text-foreground' : 'text-muted-foreground/35'}`}
             >
               <span
-                className={`absolute left-1 top-1 text-[9px] font-medium ${
+                className={`absolute top-1 left-1 text-[9px] font-medium ${
                   isToday
-                    ? "rounded-full bg-foreground px-1 py-[1px] text-background"
-                    : ""
+                    ? 'bg-foreground text-background rounded-full px-1 py-[1px]'
+                    : ''
                 }`}
               >
                 {day.getDate()}
               </span>
               {isDueSoon && (
                 <Hint label={dueSoonLabel}>
-                  <span className="absolute right-1 top-1 flex h-2.5 w-2.5 items-center justify-center">
+                  <span className="absolute top-1 right-1 flex h-2.5 w-2.5 items-center justify-center">
                     <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-red-500/35" />
                     <span className="relative h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.85)]" />
                   </span>
                 </Hint>
               )}
               {items.length > 0 && (
-                <span className="absolute bottom-[3px] left-1 right-1 flex items-end justify-between gap-1">
+                <span className="absolute right-1 bottom-[3px] left-1 flex items-end justify-between gap-1">
                   <span className="flex min-w-0 -space-x-1">
                     {visibleFriends.map((loan) => (
                       <Avatar
@@ -867,7 +916,7 @@ function DashboardCalendar({
                       />
                     ))}
                   </span>
-                  <span className="shrink-0 rounded-full bg-background/85 px-1 text-[8px] font-semibold tabular-nums shadow-sm">
+                  <span className="bg-background/85 shrink-0 rounded-full px-1 text-[8px] font-semibold tabular-nums shadow-sm">
                     {items.length > 2 ? `+${items.length - 2}` : items.length}
                   </span>
                 </span>
@@ -928,11 +977,11 @@ function LoanDetailModal({
     setConfirmingId(paymentId);
     try {
       await api.confirmPayment(loan.id, paymentId);
-      toast.success("ยืนยันการชำระสำเร็จ");
+      toast.success('ยืนยันการชำระสำเร็จ');
       setPendingPayments((p) => p.filter((x) => x.id !== paymentId));
       onUpdated();
     } catch (e: any) {
-      toast.error(e.message ?? "เกิดข้อผิดพลาด");
+      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
     } finally {
       setConfirmingId(null);
     }
@@ -942,10 +991,10 @@ function LoanDetailModal({
     setRejectingId(paymentId);
     try {
       await api.rejectPayment(loan.id, paymentId);
-      toast("ปฏิเสธการชำระแล้ว");
+      toast('ปฏิเสธการชำระแล้ว');
       setPendingPayments((p) => p.filter((x) => x.id !== paymentId));
     } catch (e: any) {
-      toast.error(e.message ?? "เกิดข้อผิดพลาด");
+      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
     } finally {
       setRejectingId(null);
     }
@@ -956,24 +1005,24 @@ function LoanDetailModal({
     try {
       const { guest_link } = await api.getGuestLink(loan.id);
       await navigator.clipboard.writeText(guest_link);
-      toast.success("คัดลอก link แล้ว");
+      toast.success('คัดลอก link แล้ว');
     } catch {
-      toast.error("คัดลอกไม่สำเร็จ");
+      toast.error('คัดลอกไม่สำเร็จ');
     } finally {
       setTimeout(() => setCopying(false), 1500);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("ลบรายการนี้?")) return;
+    if (!confirm('ลบรายการนี้?')) return;
     setDeleting(true);
     try {
       await api.deleteLoan(loan.id);
-      toast.success("ลบรายการสำเร็จ");
+      toast.success('ลบรายการสำเร็จ');
       onUpdated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? "ลบไม่สำเร็จ");
+      toast.error(e.message ?? 'ลบไม่สำเร็จ');
     } finally {
       setDeleting(false);
     }
@@ -981,38 +1030,42 @@ function LoanDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-sm overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <Avatar name={loan.borrower?.name ?? "?"} avatar={loan.borrower?.avatar} size="md" />
-            <div className="flex-1 min-w-0">
+            <Avatar
+              name={loan.borrower?.name ?? '?'}
+              avatar={loan.borrower?.avatar}
+              size="md"
+            />
+            <div className="min-w-0 flex-1">
               <p className="text-base font-semibold">
                 {loan.borrower?.name ?? `#${loan.id}`}
               </p>
               {loan.description && (
-                <p className="text-xs text-muted-foreground font-normal truncate">
+                <p className="text-muted-foreground truncate text-xs font-normal">
                   {loan.description}
                 </p>
               )}
             </div>
-            <Badge variant="outline" className={`text-xs shrink-0 ${st.cls}`}>
+            <Badge variant="outline" className={`shrink-0 text-xs ${st.cls}`}>
               {st.text}
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
         {/* Amount summary */}
-        <div className="rounded-2xl bg-muted/40 p-4 space-y-3">
-          <div className="flex justify-between items-baseline">
-            <span className="text-xs text-muted-foreground">ยังค้าง</span>
-            <span className="text-2xl font-semibold text-foreground tabular-nums">
-              {loan.status === "settled" ? "ครบ ✓" : fmt(remaining)}
+        <div className="bg-muted/40 space-y-3 rounded-2xl p-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-muted-foreground text-xs">ยังค้าง</span>
+            <span className="text-foreground text-2xl font-semibold tabular-nums">
+              {loan.status === 'settled' ? 'ครบ ✓' : fmt(remaining)}
             </span>
           </div>
           {pct > 0 && (
             <div className="space-y-1">
               <Progress value={pct} className="h-1.5" />
-              <div className="flex justify-between text-[11px] text-muted-foreground">
+              <div className="text-muted-foreground flex justify-between text-[11px]">
                 <span>จ่ายแล้ว {fmt(paid)}</span>
                 <span>
                   {pct}% จาก {fmt(total)}
@@ -1021,12 +1074,12 @@ function LoanDetailModal({
             </div>
           )}
           {loan.due_date && (
-            <p className="text-xs text-muted-foreground">
-              ครบกำหนด{" "}
-              {new Date(loan.due_date).toLocaleDateString("th-TH", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
+            <p className="text-muted-foreground text-xs">
+              ครบกำหนด{' '}
+              {new Date(loan.due_date).toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
               })}
             </p>
           )}
@@ -1038,21 +1091,21 @@ function LoanDetailModal({
         ) : (
           pendingPayments.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
                 รออ่านสลิป ({pendingPayments.length})
               </p>
               {pendingPayments.map((p) => (
                 <div
                   key={p.id}
-                  className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800/40 p-3 space-y-2.5"
+                  className="space-y-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/40 dark:bg-amber-950/20"
                 >
-                  <div className="flex justify-between items-start gap-2">
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 tabular-nums">
+                      <p className="text-sm font-semibold text-amber-800 tabular-nums dark:text-amber-300">
                         {fmt(parseFloat(p.amount))}
                       </p>
                       <p className="text-xs text-amber-600 dark:text-amber-500">
-                        {new Date(p.paid_at).toLocaleDateString("th-TH")}
+                        {new Date(p.paid_at).toLocaleDateString('th-TH')}
                         {p.note && ` · ${p.note}`}
                       </p>
                     </div>
@@ -1061,7 +1114,7 @@ function LoanDetailModal({
                         href={proofHref(p.proof_url)}
                         target="_blank"
                         rel="noopener"
-                        className="text-xs text-amber-700 underline shrink-0"
+                        className="shrink-0 text-xs text-amber-700 underline"
                       >
                         ดูสลิป
                       </a>
@@ -1070,20 +1123,20 @@ function LoanDetailModal({
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="h-8 flex-1 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
                       onClick={() => handleConfirm(p.id)}
                       disabled={confirmingId === p.id}
                     >
-                      {confirmingId === p.id ? "..." : "อ่านแล้ว"}
+                      {confirmingId === p.id ? '...' : 'อ่านแล้ว'}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 h-8 text-xs text-destructive border-destructive/30"
+                      className="text-destructive border-destructive/30 h-8 flex-1 text-xs"
                       onClick={() => handleReject(p.id)}
                       disabled={rejectingId === p.id}
                     >
-                      {rejectingId === p.id ? "..." : "✕ ปฏิเสธ"}
+                      {rejectingId === p.id ? '...' : '✕ ปฏิเสธ'}
                     </Button>
                   </div>
                 </div>
@@ -1094,23 +1147,23 @@ function LoanDetailModal({
 
         {/* Payment history */}
         {loan.payments &&
-          loan.payments.filter((p) => p.confirmation_status === "confirmed")
+          loan.payments.filter((p) => p.confirmation_status === 'confirmed')
             .length > 0 && (
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
                 ประวัติการชำระ
               </p>
-              <div className="rounded-xl border border-border overflow-hidden">
+              <div className="border-border overflow-hidden rounded-xl border">
                 {loan.payments
-                  .filter((p) => p.confirmation_status === "confirmed")
+                  .filter((p) => p.confirmation_status === 'confirmed')
                   .map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border last:border-b-0"
+                      className="border-border flex items-center justify-between gap-2 border-b px-3 py-2 last:border-b-0"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground truncate">
-                          {new Date(p.paid_at).toLocaleDateString("th-TH")}
+                        <p className="text-muted-foreground truncate text-xs">
+                          {new Date(p.paid_at).toLocaleDateString('th-TH')}
                           {p.note && ` · ${p.note}`}
                         </p>
                         {p.proof_url && (
@@ -1124,7 +1177,7 @@ function LoanDetailModal({
                           </a>
                         )}
                       </div>
-                      <span className="text-xs font-medium text-emerald-600 tabular-nums shrink-0">
+                      <span className="shrink-0 text-xs font-medium text-emerald-600 tabular-nums">
                         {fmt(parseFloat(p.amount))}
                       </span>
                     </div>
@@ -1141,17 +1194,17 @@ function LoanDetailModal({
             onClick={handleCopyLink}
             disabled={copying}
           >
-            {copying ? "✓ คัดลอกแล้ว" : "🔗 คัดลอก link"}
+            {copying ? '✓ คัดลอกแล้ว' : '🔗 คัดลอก link'}
           </Button>
-          {loan.status !== "settled" && (
+          {loan.status !== 'settled' && (
             <Button
               variant="outline"
               size="sm"
-              className="text-xs text-destructive border-destructive/30"
+              className="text-destructive border-destructive/30 text-xs"
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "..." : "ลบ"}
+              {deleting ? '...' : 'ลบ'}
             </Button>
           )}
         </div>
@@ -1173,7 +1226,7 @@ interface TripMember {
   name: string;
   user_id?: number;
 }
-type AddMode = "single" | "group";
+type AddMode = 'single' | 'group';
 
 function AddLoanModal({
   open,
@@ -1184,23 +1237,23 @@ function AddLoanModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [mode, setMode] = useState<AddMode>("single");
+  const [mode, setMode] = useState<AddMode>('single');
   const [members, setMembers] = useState<Member[]>([]);
-  const [borrowerId, setBorrowerId] = useState<number | "">("");
-  const [amount, setAmount] = useState("");
-  const [desc, setDesc] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [search, setSearch] = useState("");
-  const [tripName, setTripName] = useState("");
-  const [amountPerPerson, setAmountPerPerson] = useState("");
-  const [tripDueDate, setTripDueDate] = useState("");
+  const [borrowerId, setBorrowerId] = useState<number | ''>('');
+  const [amount, setAmount] = useState('');
+  const [desc, setDesc] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [tripName, setTripName] = useState('');
+  const [amountPerPerson, setAmountPerPerson] = useState('');
+  const [tripDueDate, setTripDueDate] = useState('');
   const [tripMembers, setTripMembers] = useState<TripMember[]>([]);
-  const [memberSearch, setMemberSearch] = useState("");
-  const [manualName, setManualName] = useState("");
+  const [memberSearch, setMemberSearch] = useState('');
+  const [manualName, setManualName] = useState('');
   const [loading, setLoading] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
-  const [proofUrl, setProofUrl] = useState("");
-  const [proofName, setProofName] = useState("");
+  const [proofUrl, setProofUrl] = useState('');
+  const [proofName, setProofName] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -1212,20 +1265,20 @@ function AddLoanModal({
   }, [open]);
 
   const reset = () => {
-    setMode("single");
-    setBorrowerId("");
-    setAmount("");
-    setDesc("");
-    setDueDate("");
-    setSearch("");
-    setTripName("");
-    setAmountPerPerson("");
-    setTripDueDate("");
+    setMode('single');
+    setBorrowerId('');
+    setAmount('');
+    setDesc('');
+    setDueDate('');
+    setSearch('');
+    setTripName('');
+    setAmountPerPerson('');
+    setTripDueDate('');
     setTripMembers([]);
-    setMemberSearch("");
-    setManualName("");
-    setProofUrl("");
-    setProofName("");
+    setMemberSearch('');
+    setManualName('');
+    setProofUrl('');
+    setProofName('');
   };
 
   const handleClose = () => {
@@ -1247,16 +1300,16 @@ function AddLoanModal({
 
   const handleSubmitSingle = async () => {
     if (!borrowerId) {
-      toast.error("กรุณาเลือกลูกหนี้");
+      toast.error('กรุณาเลือกลูกหนี้');
       return;
     }
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) {
-      toast.error("กรุณาใส่จำนวนเงิน");
+      toast.error('กรุณาใส่จำนวนเงิน');
       return;
     }
     if (!proofUrl) {
-      toast.error("กรุณาแนบหลักฐาน (รูปสลิปหรือสัญญา)");
+      toast.error('กรุณาแนบหลักฐาน (รูปสลิปหรือสัญญา)');
       return;
     }
     setLoading(true);
@@ -1268,12 +1321,12 @@ function AddLoanModal({
         due_date: dueDate || undefined,
         proof_url: proofUrl,
       });
-      toast.success("เพิ่มรายการสำเร็จ (รอเพื่อนกดยอมรับ)");
+      toast.success('เพิ่มรายการสำเร็จ (รอเพื่อนกดยอมรับ)');
       reset();
       onCreated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? "เกิดข้อผิดพลาด");
+      toast.error(e.message ?? 'เกิดข้อผิดพลาด');
     } finally {
       setLoading(false);
     }
@@ -1290,32 +1343,32 @@ function AddLoanModal({
       ...p,
       { id: `u${m.id}`, name: m.name, user_id: m.id },
     ]);
-    setMemberSearch("");
+    setMemberSearch('');
   };
 
   const addManual = () => {
     const n = manualName.trim();
     if (!n) return;
     setTripMembers((p) => [...p, { id: `m${Date.now()}`, name: n }]);
-    setManualName("");
+    setManualName('');
   };
 
   const handleSubmitGroup = async () => {
     if (!tripName.trim()) {
-      toast.error("กรุณาใส่ชื่อทริป");
+      toast.error('กรุณาใส่ชื่อทริป');
       return;
     }
     const amt = parseFloat(amountPerPerson);
     if (!amt || amt <= 0) {
-      toast.error("กรุณาใส่ยอดคนละ");
+      toast.error('กรุณาใส่ยอดคนละ');
       return;
     }
     if (tripMembers.length === 0) {
-      toast.error("กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน");
+      toast.error('กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน');
       return;
     }
     if (!proofUrl) {
-      toast.error("กรุณาแนบหลักฐาน (รูปใบเสร็จ/สลิปของกลุ่ม)");
+      toast.error('กรุณาแนบหลักฐาน (รูปใบเสร็จ/สลิปของกลุ่ม)');
       return;
     }
     setLoading(true);
@@ -1327,12 +1380,14 @@ function AddLoanModal({
         members: tripMembers.map((m) => ({ name: m.name, user_id: m.user_id })),
         proof_url: proofUrl,
       });
-      toast.success(`สร้างทริป "${tripName}" สำเร็จ! (รอเพื่อนแต่ละคนกดยอมรับ)`);
+      toast.success(
+        `สร้างทริป "${tripName}" สำเร็จ! (รอเพื่อนแต่ละคนกดยอมรับ)`,
+      );
       reset();
       onCreated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? "สร้างกลุ่มไม่สำเร็จ");
+      toast.error(e.message ?? 'สร้างกลุ่มไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
@@ -1342,12 +1397,12 @@ function AddLoanModal({
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      (m.email ?? "").toLowerCase().includes(search.toLowerCase()),
+      (m.email ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-sm max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-sm overflow-y-auto">
         <DialogHeader>
           <DialogTitle>เพิ่มรายการยืมเงิน</DialogTitle>
           <DialogDescription>
@@ -1355,21 +1410,21 @@ function AddLoanModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-1 bg-muted/50 p-1 rounded-xl mb-1">
-          {(["single", "group"] as const).map((m) => (
+        <div className="bg-muted/50 mb-1 flex gap-1 rounded-xl p-1">
+          {(['single', 'group'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`flex-1 py-1.5 text-sm rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm font-medium transition-all ${
                 mode === m
-                  ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {m === "single" ? (
+              {m === 'single' ? (
                 <>
                   <svg
-                    className="w-3.5 h-3.5"
+                    className="h-3.5 w-3.5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -1389,10 +1444,10 @@ function AddLoanModal({
           ))}
         </div>
 
-        {mode === "single" && (
+        {mode === 'single' && (
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 ลูกหนี้ *
               </p>
               <Input
@@ -1400,21 +1455,21 @@ function AddLoanModal({
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
-                  setBorrowerId("");
+                  setBorrowerId('');
                 }}
                 className="mb-1.5"
               />
               {membersLoading ? (
                 <Skeleton className="h-10 rounded-lg" />
               ) : (
-                <div className="max-h-36 overflow-y-auto rounded-xl border border-border bg-muted/30 divide-y divide-border">
+                <div className="border-border bg-muted/30 divide-border max-h-36 divide-y overflow-y-auto rounded-xl border">
                   {filtered.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-3">
+                    <p className="text-muted-foreground py-3 text-center text-xs">
                       ไม่พบสมาชิก
                     </p>
                   ) : (
                     filtered.map((m) => {
-                      const isPending = m.approval_status === "pending";
+                      const isPending = m.approval_status === 'pending';
                       return (
                         <button
                           key={m.id}
@@ -1423,24 +1478,24 @@ function AddLoanModal({
                             setBorrowerId(m.id);
                             setSearch(m.name);
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                          className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                             isPending
-                              ? "opacity-50 cursor-not-allowed bg-muted/20"
+                              ? 'bg-muted/20 cursor-not-allowed opacity-50'
                               : borrowerId === m.id
-                                ? "bg-foreground/8 font-medium"
-                                : "hover:bg-muted/60"
+                                ? 'bg-foreground/8 font-medium'
+                                : 'hover:bg-muted/60'
                           }`}
                         >
                           <div>
                             <span className="font-medium">{m.name}</span>
                             {m.email && (
-                              <span className="text-xs text-muted-foreground ml-2">
+                              <span className="text-muted-foreground ml-2 text-xs">
                                 {m.email}
                               </span>
                             )}
                           </div>
                           {isPending && (
-                            <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded font-medium shrink-0">
+                            <span className="shrink-0 rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
                               ยังไม่เชื่อม LINE
                             </span>
                           )}
@@ -1452,11 +1507,11 @@ function AddLoanModal({
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 จำนวนเงิน (บาท) *
               </p>
-              <div className="flex items-center gap-2 border border-border rounded-xl px-3 py-2 bg-background">
-                <span className="text-sm text-muted-foreground font-medium">
+              <div className="border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2">
+                <span className="text-muted-foreground text-sm font-medium">
                   ฿
                 </span>
                 <Input
@@ -1464,12 +1519,12 @@ function AddLoanModal({
                   placeholder="0"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="border-0 bg-transparent p-0 h-auto text-base font-medium focus-visible:ring-0 shadow-none"
+                  className="h-auto border-0 bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
                 />
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 หมายเหตุ
               </p>
               <Input
@@ -1479,18 +1534,18 @@ function AddLoanModal({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 วันครบกำหนด (ไม่บังคับ)
               </p>
               <Input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 หลักฐานการยืมเงิน (รูปสลิปหรือสัญญา) *
               </p>
               <div className="flex flex-col gap-1.5">
@@ -1498,10 +1553,10 @@ function AddLoanModal({
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileChange}
-                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer"
+                  className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer text-xs file:mr-2 file:rounded file:border-0 file:px-2 file:py-1 file:text-xs file:font-semibold"
                 />
                 {proofName && (
-                  <p className="text-[10px] text-emerald-600 font-medium truncate">
+                  <p className="truncate text-[10px] font-medium text-emerald-600">
                     📎 {proofName} (แนบแล้ว)
                   </p>
                 )}
@@ -1520,16 +1575,16 @@ function AddLoanModal({
                 onClick={handleSubmitSingle}
                 disabled={loading}
               >
-                {loading ? "กำลังบันทึก..." : "บันทึก"}
+                {loading ? 'กำลังบันทึก...' : 'บันทึก'}
               </Button>
             </div>
           </div>
         )}
 
-        {mode === "group" && (
+        {mode === 'group' && (
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 ชื่อทริป / งาน *
               </p>
               <Input
@@ -1539,11 +1594,11 @@ function AddLoanModal({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 ยอดคนละ (บาท) *
               </p>
-              <div className="flex items-center gap-2 border border-border rounded-xl px-3 py-2 bg-background">
-                <span className="text-sm text-muted-foreground font-medium">
+              <div className="border-border bg-background flex items-center gap-2 rounded-xl border px-3 py-2">
+                <span className="text-muted-foreground text-sm font-medium">
                   ฿
                 </span>
                 <Input
@@ -1551,12 +1606,12 @@ function AddLoanModal({
                   placeholder="0"
                   value={amountPerPerson}
                   onChange={(e) => setAmountPerPerson(e.target.value)}
-                  className="border-0 bg-transparent p-0 h-auto text-base font-medium focus-visible:ring-0 shadow-none"
+                  className="h-auto border-0 bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
                 />
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 วันครบกำหนด (ไม่บังคับ)
               </p>
               <Input
@@ -1566,7 +1621,7 @@ function AddLoanModal({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 หลักฐานการจ่ายเงิน (รูปใบเสร็จหรือสลิปกลุ่ม) *
               </p>
               <div className="flex flex-col gap-1.5">
@@ -1574,17 +1629,17 @@ function AddLoanModal({
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileChange}
-                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer"
+                  className="file:bg-primary file:text-primary-foreground hover:file:bg-primary/95 cursor-pointer text-xs file:mr-2 file:rounded file:border-0 file:px-2 file:py-1 file:text-xs file:font-semibold"
                 />
                 {proofName && (
-                  <p className="text-[10px] text-emerald-600 font-medium truncate">
+                  <p className="truncate text-[10px] font-medium text-emerald-600">
                     📎 {proofName} (แนบแล้ว)
                   </p>
                 )}
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold">
                 เพิ่มสมาชิก
               </p>
               <Input
@@ -1593,9 +1648,9 @@ function AddLoanModal({
                 onChange={(e) => setMemberSearch(e.target.value)}
               />
               {memberSearch && (
-                <div className="mt-1 border border-border rounded-xl overflow-hidden bg-background shadow-sm">
+                <div className="border-border bg-background mt-1 overflow-hidden rounded-xl border shadow-sm">
                   {!membersLoading && filteredApiMembers.length === 0 && (
-                    <p className="text-xs text-muted-foreground px-3 py-2">
+                    <p className="text-muted-foreground px-3 py-2 text-xs">
                       ไม่พบชื่อนี้ในระบบ
                     </p>
                   )}
@@ -1603,14 +1658,14 @@ function AddLoanModal({
                     <button
                       key={m.id}
                       onClick={() => addTripMember(m)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors flex items-center gap-2"
+                      className="hover:bg-muted/50 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
                     >
-                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                         {m.name[0]}
                       </div>
                       {m.name}
                       {m.email && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           {m.email}
                         </span>
                       )}
@@ -1624,7 +1679,7 @@ function AddLoanModal({
                 placeholder="หรือพิมพ์ชื่อเพื่อน (ไม่มีบัญชี)..."
                 value={manualName}
                 onChange={(e) => setManualName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addManual()}
+                onKeyDown={(e) => e.key === 'Enter' && addManual()}
               />
               <Button
                 variant="outline"
@@ -1636,15 +1691,15 @@ function AddLoanModal({
               </Button>
             </div>
             {tripMembers.length > 0 && (
-              <div className="bg-muted/30 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="bg-muted/30 overflow-hidden rounded-xl">
+                <div className="border-border/50 flex items-center justify-between border-b px-3 py-1.5">
+                  <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                     รายชื่อ ({tripMembers.length} คน)
                   </p>
                   {tripAmt > 0 && (
-                    <p className="text-[11px] text-muted-foreground">
-                      รวม{" "}
-                      <span className="font-semibold text-foreground">
+                    <p className="text-muted-foreground text-[11px]">
+                      รวม{' '}
+                      <span className="text-foreground font-semibold">
                         {fmt(tripAmt * tripMembers.length)}
                       </span>
                     </p>
@@ -1653,18 +1708,18 @@ function AddLoanModal({
                 {tripMembers.map((m) => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-2.5 px-3 py-2 border-b border-border/40 last:border-0"
+                    className="border-border/40 flex items-center gap-2.5 border-b px-3 py-2 last:border-0"
                   >
-                    <div className="w-5 h-5 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    <div className="bg-foreground/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                       {m.name[0]}
                     </div>
                     <span className="flex-1 text-sm">{m.name}</span>
                     {m.user_id ? (
-                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full">
+                      <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                         มีบัญชี
                       </span>
                     ) : (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[10px]">
                         บันทึกชื่อ
                       </span>
                     )}
@@ -1672,10 +1727,10 @@ function AddLoanModal({
                       onClick={() =>
                         setTripMembers((p) => p.filter((x) => x.id !== m.id))
                       }
-                      className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                      className="text-muted-foreground hover:text-destructive ml-1 transition-colors"
                     >
                       <svg
-                        className="w-3 h-3"
+                        className="h-3 w-3"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -1702,7 +1757,7 @@ function AddLoanModal({
                 onClick={handleSubmitGroup}
                 disabled={loading}
               >
-                {loading ? "กำลังสร้าง..." : "✓ สร้างทริป"}
+                {loading ? 'กำลังสร้าง...' : '✓ สร้างทริป'}
               </Button>
             </div>
           </div>
@@ -1723,7 +1778,7 @@ export function DashboardContent() {
   const [showAdd, setShowAdd] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<ApiLoan | null>(null);
-  const [tab, setTab] = useState<"active" | "settled">("active");
+  const [tab, setTab] = useState<'active' | 'settled'>('active');
   const [lenderLinkCopied, setLenderLinkCopied] = useState(false);
   const [hasPromptPay, setHasPromptPay] = useState<boolean | null>(null);
 
@@ -1733,7 +1788,8 @@ export function DashboardContent() {
       return;
     }
     try {
-      api.getApiKeys()
+      api
+        .getApiKeys()
         .then((keys) => {
           setHasPromptPay(keys.promptpay.has_id);
         })
@@ -1741,7 +1797,7 @@ export function DashboardContent() {
 
       const [dash, loanList] = await Promise.all([
         api.getDashboard(),
-        api.getLoans({ role: "lender" }),
+        api.getLoans({ role: 'lender' }),
       ]);
       setData(dash);
       setLoans(loanList);
@@ -1752,7 +1808,7 @@ export function DashboardContent() {
       });
       setPendingMap(map);
     } catch {
-      toast.error("โหลดข้อมูลไม่สำเร็จ");
+      toast.error('โหลดข้อมูลไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
@@ -1772,7 +1828,9 @@ export function DashboardContent() {
 
   const handleOpenAdd = () => {
     if (hasPromptPay === false) {
-      toast.error("กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มรายการยืมเงิน");
+      toast.error(
+        'กรุณาตั้งค่าหมายเลข PromptPay ในหน้าการตั้งค่าก่อนเพิ่มรายการยืมเงิน',
+      );
       return;
     }
     setShowAdd(true);
@@ -1799,8 +1857,8 @@ export function DashboardContent() {
       </div>
     );
 
-  const activeLoans = loans.filter((l) => l.status !== "settled");
-  const settledLoans = loans.filter((l) => l.status === "settled");
+  const activeLoans = loans.filter((l) => l.status !== 'settled');
+  const settledLoans = loans.filter((l) => l.status === 'settled');
 
   const totalLent = data?.total_lent ?? 0;
 
@@ -1813,17 +1871,49 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-4 p-1">
+      {hasPromptPay === false && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <svg
+            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <div className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+            <p className="font-semibold">
+              ⚠️ ยังไม่ได้ตั้งค่าหมายเลข PromptPay สำหรับรับเงิน
+            </p>
+            <p className="mt-1">
+              คุณจะไม่สามารถเพิ่มลูกหนี้ (เพื่อน) หรือทำรายการยืมเงินได้
+              กรุณาไปตั้งค่าที่หน้า{' '}
+              <a
+                href="/dashboard/payment-settings"
+                className="font-semibold underline hover:text-amber-900 dark:hover:text-amber-100"
+              >
+                ตั้งค่าการรับเงิน
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
       {/* ── Balance donut + lender link ── */}
       <div className="grid gap-3 lg:grid-cols-3">
         {/* Donut */}
-        <div className="rounded-2xl border border-border/60 bg-background p-5">
-          <p className="text-sm font-semibold mb-4">สัดส่วนหนี้</p>
+        <div className="border-border/60 bg-background rounded-2xl border p-5">
+          <p className="mb-4 text-sm font-semibold">สัดส่วนหนี้</p>
 
           <BalanceRing lent={totalLent} recovered={totalRecovered} />
         </div>
 
         {/* Recent Transaction Activity Timeline / Line Graph */}
-        <div className="rounded-2xl border border-border/60 bg-background p-5 lg:col-span-2">
+        <div className="border-border/60 bg-background rounded-2xl border p-5 lg:col-span-2">
           <ActivityLineGraph loans={loans} />
         </div>
       </div>
@@ -1834,16 +1924,16 @@ export function DashboardContent() {
           <Hint label="คัดลอกลิงก์สำหรับส่งให้ลูกหนี้">
             <button
               onClick={handleCopyLenderLink}
-              className="rounded-2xl border border-border/60 bg-background px-2 py-2 text-left hover:bg-muted/30 transition-colors group"
+              className="border-border/60 bg-background hover:bg-muted/30 group rounded-2xl border px-2 py-2 text-left transition-colors"
             >
               {/* <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
                 ลิงก์ของฉัน
               </p> */}
               <div className="flex items-start gap-2">
-                <div className="w-8 h-8 rounded-xl bg-foreground/6 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="bg-foreground/6 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
                   {lenderLinkCopied ? (
                     <svg
-                      className="w-4 h-4 text-emerald-500"
+                      className="h-4 w-4 text-emerald-500"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1853,7 +1943,7 @@ export function DashboardContent() {
                     </svg>
                   ) : (
                     <svg
-                      className="w-4 h-4 text-muted-foreground"
+                      className="text-muted-foreground h-4 w-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1865,10 +1955,10 @@ export function DashboardContent() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-tight">
-                    {lenderLinkCopied ? "คัดลอกแล้ว!" : "ส่งให้ลูกหนี้กด"}
+                  <p className="text-foreground text-xs leading-tight font-semibold">
+                    {lenderLinkCopied ? 'คัดลอกแล้ว!' : 'ส่งให้ลูกหนี้กด'}
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  <p className="text-muted-foreground mt-0.5 truncate text-[11px]">
                     /lender/{user.line_id}
                   </p>
                 </div>
@@ -1876,8 +1966,8 @@ export function DashboardContent() {
             </button>
           </Hint>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-background/50 p-4 flex items-center justify-center">
-            <p className="text-xs text-muted-foreground text-center">
+          <div className="border-border/60 bg-background/50 flex items-center justify-center rounded-2xl border border-dashed p-4">
+            <p className="text-muted-foreground text-center text-xs">
               ตั้งค่า LINE ID
               <br />
               เพื่อรับลิงก์
@@ -1888,25 +1978,25 @@ export function DashboardContent() {
 
       {/* ── Loan list header ── */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full gap-1 bg-muted/40 p-1 rounded-xl sm:w-auto">
-          {(["active", "settled"] as const).map((t) => (
+        <div className="bg-muted/40 flex w-full gap-1 rounded-xl p-1 sm:w-auto">
+          {(['active', 'settled'] as const).map((t) => (
             <Hint
               key={t}
               label={
-                t === "active" ? "ดูรายการค้างชำระ" : "ดูรายการที่ชำระครบแล้ว"
+                t === 'active' ? 'ดูรายการค้างชำระ' : 'ดูรายการที่ชำระครบแล้ว'
               }
             >
               <button
                 onClick={() => setTab(t)}
-                className={`flex-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all tabular-nums sm:flex-none ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium tabular-nums transition-all sm:flex-none ${
                   tab === t
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {t === "active"
-                  ? `ค้างอยู่${activeLoans.length ? ` (${activeLoans.length})` : ""}`
-                  : `ครบแล้ว${settledLoans.length ? ` (${settledLoans.length})` : ""}`}
+                {t === 'active'
+                  ? `ค้างอยู่${activeLoans.length ? ` (${activeLoans.length})` : ''}`
+                  : `ครบแล้ว${settledLoans.length ? ` (${settledLoans.length})` : ''}`}
               </button>
             </Hint>
           ))}
@@ -1917,10 +2007,10 @@ export function DashboardContent() {
               onClick={() => setShowCalendar(true)}
               variant="outline"
               size="sm"
-              className="gap-1.5 h-8 px-3 text-xs"
+              className="h-8 gap-1.5 px-3 text-xs"
             >
               <svg
-                className="w-3 h-3"
+                className="h-3 w-3"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1936,10 +2026,10 @@ export function DashboardContent() {
             <Button
               onClick={handleOpenAdd}
               size="sm"
-              className="gap-1.5 shrink-0 h-8 px-3 text-xs"
+              className="h-8 shrink-0 gap-1.5 px-3 text-xs"
             >
               <svg
-                className="w-3 h-3"
+                className="h-3 w-3"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1956,21 +2046,21 @@ export function DashboardContent() {
 
       {/* ── Loan list ── */}
       {(() => {
-        const list = tab === "active" ? activeLoans : settledLoans;
+        const list = tab === 'active' ? activeLoans : settledLoans;
         if (!list.length)
           return (
-            <div className="text-center py-14">
-              <p className="text-3xl mb-3">{tab === "active" ? "🎉" : "📋"}</p>
-              <p className="font-medium text-sm text-foreground">
-                {tab === "active"
-                  ? "ไม่มีรายการค้างอยู่"
-                  : "ยังไม่มีรายการที่ชำระครบ"}
+            <div className="py-14 text-center">
+              <p className="mb-3 text-3xl">{tab === 'active' ? '🎉' : '📋'}</p>
+              <p className="text-foreground text-sm font-medium">
+                {tab === 'active'
+                  ? 'ไม่มีรายการค้างอยู่'
+                  : 'ยังไม่มีรายการที่ชำระครบ'}
               </p>
-              {tab === "active" && (
+              {tab === 'active' && (
                 <Hint label="สร้างรายการหนี้รายการแรก">
                   <button
                     onClick={handleOpenAdd}
-                    className="mt-3 text-xs text-primary underline underline-offset-2"
+                    className="text-primary mt-3 text-xs underline underline-offset-2"
                   >
                     + เพิ่มรายการแรก
                   </button>
@@ -1979,7 +2069,7 @@ export function DashboardContent() {
             </div>
           );
         return (
-          <div className="rounded-2xl border border-border/60 bg-background overflow-hidden divide-y divide-border/50">
+          <div className="border-border/60 bg-background divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {list.map((loan) => (
               <LoanRow
                 key={loan.id}
@@ -1998,8 +2088,8 @@ export function DashboardContent() {
         onCreated={fetchAll}
       />
       <Sheet open={showCalendar} onOpenChange={setShowCalendar}>
-        <SheetContent side="right" className="w-[92vw] sm:max-w-md p-0">
-          <SheetHeader className="border-b border-border/60 pr-14">
+        <SheetContent side="right" className="w-[92vw] p-0 sm:max-w-md">
+          <SheetHeader className="border-border/60 border-b pr-14">
             <SheetTitle>ปฏิทินครบกำหนด</SheetTitle>
             <SheetDescription>
               ดูวันครบกำหนดของรายการค้างชำระทั้งหมด
